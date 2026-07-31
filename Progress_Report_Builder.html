@@ -693,9 +693,32 @@ function applyState(loaded){
   render();
 }
 
-$('btnSaveProgress').addEventListener('click', ()=>{
+$('btnSaveProgress').addEventListener('click', async ()=>{
   const fileName = (state.project ? state.project.replace(/[^a-z0-9]+/gi,'_') : 'progress_report') + '_' + (state.date||'draft') + '.json';
-  const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
+  const jsonText = JSON.stringify(state, null, 2);
+
+  // Prefer the native "Save As" picker so the user can choose the folder,
+  // not just the filename. Supported in Chrome/Edge/Opera (desktop).
+  if(window.showSaveFilePicker){
+    try{
+      const handle = await window.showSaveFilePicker({
+        suggestedName: fileName,
+        types: [{ description: 'JSON draft', accept: {'application/json': ['.json']} }]
+      });
+      const writable = await handle.createWritable();
+      await writable.write(jsonText);
+      await writable.close();
+      return;
+    }catch(err){
+      // User cancelled the picker — do nothing further.
+      if(err && err.name === 'AbortError') return;
+      // Any other error (e.g. API blocked): fall through to the download fallback below.
+    }
+  }
+
+  // Fallback for browsers without showSaveFilePicker (Firefox, Safari, etc.)
+  // — this saves straight to the browser's default download location.
+  const blob = new Blob([jsonText], {type:'application/json'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url; a.download = fileName;
