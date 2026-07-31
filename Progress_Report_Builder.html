@@ -790,8 +790,21 @@ $('btnDismissDraft').addEventListener('click', ()=>{
 const SAVE_FLOW_URL = 'https://default6f9c90e61d074ff993b5ae1e2ff233.ac.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/16/workflows/444edeedbeb942d49cdcf697fa7d809c/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=J1b5CKKA8xX4bQhAXVwB4Mt63zEbYKm_XECoqpBzjRw';
 
 const urlParams = new URLSearchParams(window.location.search);
+// Fill this in once you've saved the "Open Progress Report Draft" flow —
+// paste the URL shown in its trigger step (same as SAVE_FLOW_URL above).
+const LOAD_FLOW_URL = 'PASTE_YOUR_LOAD_FLOW_HTTP_URL_HERE';
+
 const ctxProjectId = urlParams.get('projectId') || '';
 const ctxProjectName = urlParams.get('projectName') || '';
+const ctxLoadItemId = urlParams.get('loadFile') || '';
+
+if(ctxLoadItemId && LOAD_FLOW_URL.indexOf('PASTE_YOUR_LOAD_FLOW_HTTP_URL_HERE') === -1){
+  const loadUrl = LOAD_FLOW_URL + (LOAD_FLOW_URL.indexOf('?') > -1 ? '&' : '?') + 'itemId=' + encodeURIComponent(ctxLoadItemId);
+  fetch(loadUrl)
+    .then(res => { if(!res.ok) throw new Error('status ' + res.status); return res.json(); })
+    .then(loaded => applyState(loaded))
+    .catch(err => alert('Could not load that report. Check your connection and try again.'));
+}
 
 if(ctxProjectId || ctxProjectName){
   $('projectBadge').style.display = 'flex';
