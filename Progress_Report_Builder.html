@@ -799,8 +799,11 @@ const ctxProjectName = urlParams.get('projectName') || '';
 const ctxLoadItemId = urlParams.get('loadFile') || '';
 
 if(ctxLoadItemId && LOAD_FLOW_URL.indexOf('PASTE_YOUR_LOAD_FLOW_HTTP_URL_HERE') === -1){
-  const loadUrl = LOAD_FLOW_URL + (LOAD_FLOW_URL.indexOf('?') > -1 ? '&' : '?') + 'itemId=' + encodeURIComponent(ctxLoadItemId);
-  fetch(loadUrl)
+  fetch(LOAD_FLOW_URL, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ itemId: ctxLoadItemId })
+  })
     .then(res => { if(!res.ok) throw new Error('status ' + res.status); return res.json(); })
     .then(loaded => applyState(loaded))
     .catch(err => alert('Could not load that report. Check your connection and try again.'));
