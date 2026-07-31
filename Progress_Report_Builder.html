@@ -28,6 +28,12 @@
   }
   .appbar .brand{font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:.1em; text-transform:uppercase; color:#B8C4CB;}
   .appbar .brand strong{color:#fff;}
+  .project-badge{
+    display:none; align-items:center; gap:8px; font-family:'IBM Plex Mono',monospace; font-size:11px;
+    letter-spacing:.06em; text-transform:uppercase; color:#EFEDE6; background:#2B3743;
+    border:1px solid #55636d; border-radius:2px; padding:6px 12px; margin-left:18px;
+  }
+  .project-badge .dot{width:6px; height:6px; border-radius:50%; background:var(--amber); flex-shrink:0;}
   .actions{display:flex; gap:10px;}
   .btn{
     font-family:'IBM Plex Mono',monospace; font-size:11.5px; letter-spacing:.05em; text-transform:uppercase;
@@ -152,6 +158,8 @@
   .gallery figure{margin:0; border:1px solid var(--line); background:var(--paper); overflow:hidden;}
   .gallery img{width:100%; display:block; aspect-ratio:4/3; object-fit:contain; background:#EFEDE6;}
   .gallery figcaption{font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-soft); padding:7px 11px; border-top:1px solid var(--line);}
+  .gallery-break{grid-column:1 / -1; font-family:'IBM Plex Mono',monospace; font-size:11.5px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--steel-deep); padding:10px 0 6px 0; margin-top:4px; border-bottom:2px solid var(--steel-deep);}
+  .gallery-break:first-child{margin-top:0;}
   .empty-notes{font-size:13px; color:var(--ink-soft); font-style:italic;}
   footer{padding:24px 40px 32px 40px; display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:18px; border-top:2px solid var(--ink);}
   .foot-block .lbl{font-family:'IBM Plex Mono',monospace; font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-soft); display:block; margin-bottom:4px;}
@@ -174,6 +182,7 @@
     .gallery figure{break-inside:avoid;}
     tr{break-inside:avoid;}
     .sec-head, h1, h2{break-after:avoid;}
+    .gallery-break{break-after:avoid; break-before:auto;}
   }
 </style>
 </head>
@@ -181,11 +190,13 @@
 
 <div class="appbar">
   <div class="brand" style="display:flex;align-items:center;gap:10px;"><img src="data:image/png;base64,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" class="logo-mark" alt="Corporate Environments"><span>Progress Report Builder</span></div>
+  <div id="projectBadge" class="project-badge"><span class="dot"></span><span id="projectBadgeText"></span></div>
   <div class="actions">
     <button class="btn" id="btnReset">Reset form</button>
     <button class="btn" id="btnLoadProgress">Load draft</button>
     <input type="file" id="fileLoadProgress" accept=".json" style="display:none">
     <button class="btn" id="btnSaveProgress">Save draft (.json)</button>
+    <button class="btn" id="btnSaveSharePoint">Save to SharePoint</button>
     <button class="btn" id="btnDownload">Download report (.html)</button>
     <button class="btn primary" id="btnPrint">Print / Save as PDF</button>
   </div>
@@ -268,6 +279,7 @@
       <h2>06 — Photos of Progress</h2>
       <div class="photo-drop" id="photoDrop">Drag photos here, or click to choose files</div>
       <input type="file" id="photoInput" accept="image/*" multiple style="display:none">
+      <button class="quickbtn" id="addPhotoBreak" style="margin-top:8px;">+ Add break (e.g. floor label)</button>
       <div class="thumb-row" id="thumbRow"></div>
       <div class="hint">Photos stay in this browser tab only — nothing uploads anywhere. They're baked into the file when you download or print.</div>
     </div>
@@ -464,6 +476,10 @@ photoDrop.addEventListener('drop', e=>{
   handleFiles(e.dataTransfer.files);
 });
 photoInput.addEventListener('change', e=>handleFiles(e.target.files));
+$('addPhotoBreak').addEventListener('click', ()=>{
+  state.photos.push({break:true, label:''});
+  renderThumbs(); render();
+});
 
 function handleFiles(files){
   [...files].forEach(file=>{
@@ -480,15 +496,24 @@ function renderThumbs(){
   const wrap = $('thumbRow'); wrap.innerHTML='';
   state.photos.forEach((p,i)=>{
     const div = document.createElement('div');
-    div.innerHTML = `<div class="thumb"><img src="${p.src}"><button class="rm" data-i="${i}">✕</button></div>
-      <input type="text" class="caption-input" data-i="${i}" placeholder="Caption" value="${escAttr(p.caption)}">`;
+    if(p.break){
+      div.style.cssText = 'flex-basis:100%; display:flex; align-items:center; gap:8px; margin:8px 0 2px 0; padding-top:8px; border-top:1px dashed var(--line);';
+      div.innerHTML = `<input type="text" class="caption-input" data-i="${i}" data-break="1" placeholder="Section label (e.g. Floor 12)" style="flex:1; font-family:'IBM Plex Mono',monospace; text-transform:uppercase; font-size:11px; letter-spacing:.06em;" value="${escAttr(p.label)}">
+        <button class="rm" data-i="${i}" style="position:static; background:none; border:none; color:var(--rust); cursor:pointer; font-size:16px; line-height:1;">✕</button>`;
+    } else {
+      div.innerHTML = `<div class="thumb"><img src="${p.src}"><button class="rm" data-i="${i}">✕</button></div>
+        <input type="text" class="caption-input" data-i="${i}" placeholder="Caption" value="${escAttr(p.caption)}">`;
+    }
     wrap.appendChild(div);
   });
   wrap.querySelectorAll('.rm').forEach(el=>el.addEventListener('click', e=>{
     state.photos.splice(+e.target.dataset.i,1); renderThumbs(); render();
   }));
   wrap.querySelectorAll('.caption-input').forEach(el=>el.addEventListener('input', e=>{
-    state.photos[+e.target.dataset.i].caption = e.target.value; render();
+    const i = +e.target.dataset.i;
+    if(e.target.dataset.break) state.photos[i].label = e.target.value;
+    else state.photos[i].caption = e.target.value;
+    render();
   }));
 }
 
@@ -536,9 +561,11 @@ function render(){
       <td><span class="status-chip ${statusChipClass(s.status)}">${s.status}</span></td>
     </tr>`).join('');
 
-  const galleryHtml = state.photos.length ? `<div class="gallery">${state.photos.map(p=>`
-      <figure><img src="${p.src}"><figcaption>${escHtml(p.caption)||'Site photo'}</figcaption></figure>
-    `).join('')}</div>` : `<p class="empty-notes">No photos attached yet.</p>`;
+  const galleryHtml = state.photos.length ? `<div class="gallery">${state.photos.map(p=>
+      p.break
+        ? `<div class="gallery-break">${escHtml(p.label)||'Section'}</div>`
+        : `<figure><img src="${p.src}"><figcaption>${escHtml(p.caption)||'Site photo'}</figcaption></figure>`
+    ).join('')}</div>` : `<p class="empty-notes">No photos attached yet.</p>`;
 
   $('sheet').innerHTML = `
     <div class="titleblock">
@@ -755,6 +782,57 @@ $('btnDismissDraft').addEventListener('click', ()=>{
   try{ localStorage.removeItem(AUTOSAVE_KEY); }catch(e){}
   pendingAutosavedDraft = null;
   $('restoreBanner').style.display = 'none';
+});
+
+// ---------- project context (passed in from Power Apps via URL) ----------
+// Fill this in once your Power Automate HTTP trigger flow is saved —
+// paste the URL shown in the trigger step after saving the flow.
+const SAVE_FLOW_URL = 'PASTE_YOUR_FLOW_HTTP_URL_HERE';
+
+const urlParams = new URLSearchParams(window.location.search);
+const ctxProjectId = urlParams.get('projectId') || '';
+const ctxProjectName = urlParams.get('projectName') || '';
+
+if(ctxProjectId || ctxProjectName){
+  $('projectBadge').style.display = 'flex';
+  $('projectBadgeText').textContent = ctxProjectName || ctxProjectId;
+  if(ctxProjectName && !state.project){
+    state.project = ctxProjectName;
+    $('f_project').value = ctxProjectName;
+  }
+}
+
+$('btnSaveSharePoint').addEventListener('click', async ()=>{
+  if(!SAVE_FLOW_URL || SAVE_FLOW_URL.indexOf('PASTE_YOUR_FLOW_HTTP_URL_HERE') !== -1){
+    alert('Save to SharePoint isn\'t configured yet — the flow URL hasn\'t been set up in this tool.');
+    return;
+  }
+  const btn = $('btnSaveSharePoint');
+  const originalText = btn.textContent;
+  btn.textContent = 'Saving...';
+  btn.disabled = true;
+  try{
+    const payload = {
+      projectId: ctxProjectId,
+      projectName: ctxProjectName,
+      draft: state
+    };
+    const response = await fetch(SAVE_FLOW_URL, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload)
+    });
+    if(response.ok){
+      btn.textContent = 'Saved ✓';
+      setTimeout(()=>{ btn.textContent = originalText; btn.disabled = false; }, 2000);
+    }else{
+      throw new Error('Flow returned status ' + response.status);
+    }
+  }catch(err){
+    alert('Could not save to SharePoint. Check your connection and try again.');
+    btn.textContent = originalText;
+    btn.disabled = false;
+  }
 });
 
 // ---------- init ----------
