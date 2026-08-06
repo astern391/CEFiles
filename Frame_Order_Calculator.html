@@ -193,13 +193,6 @@
     padding: 12px 18px;
     border-radius: 10px 10px 0 0;
   }
-    body { background: white; padding: 0; }
-    .appbar, .actions, #status { display: none !important; }
-    .titleblock { margin-top: 0; }
-    .elevation-card, .summary-card { break-inside: avoid; border: 1px solid #999; }
-    button { display: none; }
-    input { border: none !important; }
-  }
 
   /* ---- Report-style header (ported from Progress Report Builder) ---- */
   .titleblock {
@@ -242,6 +235,15 @@
   .appbar .btn:hover { background: #2B3743; }
   .appbar .btn.primary { background: #E0972E; border-color: #E0972E; color: #20160a; font-weight: 600; }
   .appbar .btn.primary:hover { background: #c8811f; }
+
+  @media print {
+    body { background: white; padding: 0; }
+    .appbar, .actions, #status { display: none !important; }
+    .titleblock { margin-top: 0; }
+    .elevation-card, .summary-card { break-inside: avoid; border: 1px solid #999; }
+    button { display: none; }
+    input { border: none !important; }
+  }
 </style>
 </head>
 <body>
@@ -537,7 +539,6 @@
       const calc = computeElevation(e);
       const groupIdx = elevToGroup[idx] ?? 0;
       const color = groupColor(groupIdx);
-      const groupOH = groups[groupIdx].orderHeight;
       const rows = e.positions.map((p, pIdx) => `
         <tr>
           <td>${p.position}</td>
@@ -571,14 +572,14 @@
           <div class="field-row">
             <div class="field checkbox">
               <input type="checkbox" ${e.carpetChecked ? "checked" : ""} onchange="updateElevation(${idx}, 'carpetChecked', this.checked)">
-              <label>Carpet deduction (${CARPET_DEDUCTION}")</label>
+              <label>Carpet Deduction (${CARPET_DEDUCTION}")</label>
             </div>
             <div class="field checkbox">
               <input type="checkbox" ${e.ceilingChecked ? "checked" : ""} onchange="updateElevation(${idx}, 'ceilingChecked', this.checked)">
-              <label>Ceiling deduction (${CEILING_DEDUCTION}")</label>
+              <label>Tegular Deduction (${CEILING_DEDUCTION}")</label>
             </div>
             <div class="field">
-              <label>Frame adjustment</label>
+              <label>Frame Adjustment</label>
               <input type="number" step="0.0625" value="${e.frameAdjustment}" onchange="updateElevation(${idx}, 'frameAdjustment', this.value)">
             </div>
 
@@ -592,8 +593,8 @@
                 <span class="value">${decimalToFraction(calc.diff)}</span>
               </div>
               <div class="result order">
-                <span class="label">Order Height</span>
-                <span class="value">${decimalToFraction(groupOH)}</span>
+                <span class="label">Adjusted Height</span>
+                <span class="value">${decimalToFraction(calc.orderHeight)}</span>
               </div>
             </div>
           </div>
