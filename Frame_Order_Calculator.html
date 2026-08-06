@@ -166,7 +166,33 @@
     font-size: 13px;
   }
 
-  @media print {
+  .settings-row {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    flex-wrap: wrap;
+  }
+  .settings-title { font-size: 13px; font-weight: 600; color: var(--text); margin-right: 4px; }
+  .settings-row .field input { width: 70px; }
+  .group-swatch {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    margin-right: 6px;
+    vertical-align: middle;
+    border: 1px solid rgba(0,0,0,0.15);
+  }
+  .elev-header.grouped {
+    margin: -16px -18px 12px -18px;
+    padding: 12px 18px;
+    border-radius: 10px 10px 0 0;
+  }
     body { background: white; padding: 0; }
     .appbar, .actions, #status { display: none !important; }
     .titleblock { margin-top: 0; }
@@ -254,6 +280,7 @@
 </div>
 
 <div id="status"></div>
+<div id="levelerSettings"></div>
 <div id="elevations"></div>
 <div id="summaryContainer"></div>
 
@@ -272,6 +299,69 @@
 
   let elevations = []; // { id, title, datum, carpetChecked, ceilingChecked, frameAdjustment, positions: [{position, variance, calculatedHeight}] }
   let nextLocalId = 1;
+
+  // ---- Base leveler adjustment range ----
+  // Raise shrinks the effective installed height (lets a taller order fit a shorter opening).
+  // Drop grows the effective installed height (lets a shorter order fit a taller opening).
+  // Reserve = capacity intentionally left unused as a safety margin.
+  let levelerSettings = { raiseCapacity: 0.375, raiseReserve: 0.125, dropCapacity: 1, dropReserve: 0, groupDropLimit: 0.375 };
+
+  const GROUP_COLORS = ["#FDE68A","#BFDBFE","#BBF7D0","#FBCFE8","#DDD6FE","#FCA5A5","#99F6E4","#FED7AA","#C7D2FE","#D9F99D"];
+  function groupColor(i) { return GROUP_COLORS[i % GROUP_COLORS.length]; }
+
+  function renderLevelerSettings() {
+    document.getElementById("levelerSettings").innerHTML = `
+      <div class="settings-row">
+        <span class="settings-title">Base Leveler Range</span>
+        <div class="field"><label>Raise capacity</label><input type="number" step="0.0625" value="${levelerSettings.raiseCapacity}" onchange="updateLeveler('raiseCapacity', this.value)"></div>
+        <div class="field"><label>Raise reserve</label><input type="number" step="0.0625" value="${levelerSettings.raiseReserve}" onchange="updateLeveler('raiseReserve', this.value)"></div>
+        <div class="field"><label>Drop capacity</label><input type="number" step="0.0625" value="${levelerSettings.dropCapacity}" onchange="updateLeveler('dropCapacity', this.value)"></div>
+        <div class="field"><label>Drop reserve</label><input type="number" step="0.0625" value="${levelerSettings.dropReserve}" onchange="updateLeveler('dropReserve', this.value)"></div>
+        <div class="field"><label title="Caps drop variation within one group — lower this to force more (tighter) groups even if the leveler could physically span the whole set.">Group drop limit</label><input type="number" step="0.0625" value="${levelerSettings.groupDropLimit}" onchange="updateLeveler('groupDropLimit', this.value)"></div>
+      </div>
+      <div class="hint" style="margin-top:6px;">"Group drop limit" caps how much extra drop (beyond what an elevation would need on its own) it will accept to share an order height with others. Default matches raise capacity (3/8") as a reasonable starting point — lower it for more, tighter groups; raise it for fewer.</div>
+    `;
+  }
+  function updateLeveler(field, value) {
+    levelerSettings[field] = parseFloat(value) || 0;
+    render();
+  }
+
+  // ---- Group elevations onto the fewest possible order heights ----
+  // Each elevation tolerates a WINDOW of order heights, bounded by how far the base can
+  // raise (minus reserve) and drop (minus reserve). Greedy interval-point-cover picks the
+  // fewest order heights that land inside every elevation's window.
+  function computeGroups() {
+    const raiseUse = Math.max(0, levelerSettings.raiseCapacity - levelerSettings.raiseReserve);
+    const dropUse = Math.max(0, levelerSettings.dropCapacity - levelerSettings.dropReserve);
+    const groupDropUse = Math.min(dropUse, Math.max(0, levelerSettings.groupDropLimit));
+    const windows = elevations.map((e, idx) => {
+      const calc = computeElevation(e);
+      const ohIdeal = calc.min + raiseUse;
+      const low = Math.max(calc.max - dropUse, ohIdeal - groupDropUse);
+      return { idx, low, high: ohIdeal };
+    });
+    const sorted = [...windows].sort((a, b) => a.high - b.high);
+    const assigned = new Set();
+    const groups = [];
+    for (const w of sorted) {
+      if (assigned.has(w.idx)) continue;
+      const orderHeight = w.high;
+      const members = [];
+      for (const w2 of windows) {
+        if (assigned.has(w2.idx)) continue;
+        if (w2.low <= orderHeight && orderHeight <= w2.high) {
+          members.push(w2.idx);
+          assigned.add(w2.idx);
+        }
+      }
+      groups.push({ orderHeight, members });
+    }
+    // map elevation idx -> group index
+    const elevToGroup = {};
+    groups.forEach((g, gIdx) => g.members.forEach(m => { elevToGroup[m] = gIdx; }));
+    return { groups, elevToGroup };
+  }
 
   let projectMeta = { client: "", location: "", dirttPM: "", installSupervisor: "", contractor: "" };
 
@@ -439,8 +529,15 @@
       return;
     }
 
+    renderLevelerSettings();
+
+    const { elevToGroup, groups } = computeGroups();
+
     container.innerHTML = elevations.map((e, idx) => {
       const calc = computeElevation(e);
+      const groupIdx = elevToGroup[idx] ?? 0;
+      const color = groupColor(groupIdx);
+      const groupOH = groups[groupIdx].orderHeight;
       const rows = e.positions.map((p, pIdx) => `
         <tr>
           <td>${p.position}</td>
@@ -453,7 +550,7 @@
 
       return `
         <div class="elevation-card">
-          <div class="elev-header">
+          <div class="elev-header grouped" style="background:${color};">
             <input class="elev-title" value="${e.title}" onchange="updateElevation(${idx}, 'title', this.value)">
             <button class="subtle elev-remove" onclick="removeElevation(${idx})">Remove elevation</button>
           </div>
@@ -496,7 +593,7 @@
               </div>
               <div class="result order">
                 <span class="label">Order Height</span>
-                <span class="value">${decimalToFraction(calc.orderHeight)}</span>
+                <span class="value">${decimalToFraction(groupOH)}</span>
               </div>
             </div>
           </div>
@@ -508,17 +605,54 @@
   }
 
   function renderSummary() {
-    const rows = elevations.map(e => {
+    const { groups, elevToGroup } = computeGroups();
+
+    const rows = elevations.map((e, idx) => {
       const calc = computeElevation(e);
-      return `<tr><td>${e.title}</td><td class="num">${decimalToFraction(calc.min)}</td><td class="num">${decimalToFraction(calc.orderHeight)}</td><td class="num">${decimalToFraction(calc.max)}</td></tr>`;
+      const color = groupColor(elevToGroup[idx] ?? 0);
+      const groupOH = groups[elevToGroup[idx] ?? 0].orderHeight;
+      return `<tr><td><span class="group-swatch" style="background:${color};"></span>${e.title}</td><td class="num">${decimalToFraction(calc.min)}</td><td class="num">${decimalToFraction(groupOH)}</td><td class="num">${decimalToFraction(calc.max)}</td></tr>`;
+    }).join("");
+
+    const groupRows = groups.map((g, gIdx) => {
+      const names = g.members.map(m => elevations[m].title).join(", ");
+      return `<tr><td><span class="group-swatch" style="background:${groupColor(gIdx)};"></span>Group ${gIdx + 1}</td><td class="num">${decimalToFraction(g.orderHeight)}</td><td>${names}</td></tr>`;
+    }).join("");
+
+    const allCalcs = elevations.map(computeElevation);
+    const projMin = Math.min(...allCalcs.map(c => c.min));
+    const projMax = Math.max(...allCalcs.map(c => c.max));
+
+    const groupRangeRows = groups.map((g, gIdx) => {
+      const memberCalcs = g.members.map(m => allCalcs[m]);
+      const gMin = Math.min(...memberCalcs.map(c => c.min));
+      const gMax = Math.max(...memberCalcs.map(c => c.max));
+      return `<tr><td><span class="group-swatch" style="background:${groupColor(gIdx)};"></span>Group ${gIdx + 1}</td><td class="num">${decimalToFraction(gMin)}</td><td class="num">${decimalToFraction(gMax)}</td><td class="num">${decimalToFraction(gMax - gMin)}</td></tr>`;
     }).join("");
 
     document.getElementById("summaryContainer").innerHTML = `
+      <div class="summary-card">
+        <h2>Order Height Groups — ${groups.length} of ${elevations.length} elevations</h2>
+        <table class="summary">
+          <thead><tr><th>Group</th><th>Order Height</th><th>Elevations</th></tr></thead>
+          <tbody>${groupRows}</tbody>
+        </table>
+      </div>
       <div class="summary-card">
         <h2>Project Order Summary — ${projectName}</h2>
         <table class="summary">
           <thead><tr><th>Elevation</th><th style="text-align:right">Min</th><th style="text-align:right">Order Height</th><th style="text-align:right">Max</th></tr></thead>
           <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <div class="summary-card">
+        <h2>Frame Range Across All Elevations</h2>
+        <table class="summary">
+          <thead><tr><th></th><th style="text-align:right">Min</th><th style="text-align:right">Max</th><th style="text-align:right">Spread</th></tr></thead>
+          <tbody>
+            <tr style="font-weight:600;"><td>Overall</td><td class="num">${decimalToFraction(projMin)}</td><td class="num">${decimalToFraction(projMax)}</td><td class="num">${decimalToFraction(projMax - projMin)}</td></tr>
+            ${groupRangeRows}
+          </tbody>
         </table>
       </div>
     `;
