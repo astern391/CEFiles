@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Frame Order Calculator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
   :root {
     --bg: #f5f6f8;
@@ -63,18 +64,25 @@
   #status.error { background: #fdecea; color: var(--danger); }
   #status.success { background: #e8f5e9; color: #256029; }
 
+  .card-with-photo {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    margin-bottom: 10px;
+  }
   .elevation-card {
     background: var(--card);
     border: 1px solid var(--border);
     border-radius: 10px;
-    padding: 16px 18px;
-    margin-bottom: 16px;
+    padding: 12px 14px;
+    flex: 1;
+    min-width: 0;
   }
   .elev-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
   }
   .elev-title {
     font-size: 15px;
@@ -92,13 +100,14 @@
     width: 100%;
     border-collapse: collapse;
     font-size: 13px;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
   }
   table.positions th, table.positions td {
-    padding: 6px 8px;
+    padding: 3px 8px;
     text-align: center;
     border-bottom: 1px solid var(--border);
   }
+  table.positions tr:last-child td { border-bottom: none; }
   table.positions th { color: var(--text-muted); font-weight: 500; font-size: 12px; }
   table.positions input {
     width: 64px;
@@ -125,24 +134,45 @@
     font-size: 12px;
     color: var(--text-muted);
   }
-  .field input[type="number"], .field input[type="text"], .field select {
+  .field input[type="number"] {
     font-family: var(--mono);
     padding: 5px 8px;
     border: 1px solid var(--border);
     border-radius: 5px;
-    width: 90px;
+    width: 60px;
+  }
+  .field select {
+    font-family: var(--mono);
+    padding: 5px 8px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    width: auto;
   }
   .field.checkbox { flex-direction: row; align-items: center; gap: 6px; }
-  .leveler-select { width: 130px; }
+  .compact-row { gap: 12px !important; }
+  .compact-row .field.checkbox { gap: 4px; font-size: 11.5px; }
+  .compact-row .val-field { padding: 4px 6px; }
+  .val-field {
+    display: inline-block;
+    font-family: var(--mono);
+    padding: 5px 8px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    white-space: nowrap;
+    min-width: 26px;
+  }
+  .val-field[contenteditable]:focus { outline: 1px solid var(--accent, #6b7fd7); outline-offset: 1px; }
+  .val-field.readonly { background: #f5f6f8; color: var(--text-muted); }
+  .val-field:empty:before { content: attr(data-placeholder); color: #9aa1a8; }
   .result-block {
     margin-left: auto;
     display: flex;
     gap: 24px;
   }
   .result { display: flex; flex-direction: column; align-items: center; text-align: center; }
-  .result .label { font-size: 11px; color: var(--text-muted); }
-  .result .value { font-family: var(--mono); font-size: 15px; font-weight: 600; }
-  .result.order .value { color: var(--accent); font-size: 18px; }
+  .result .label { font-size: 10px; color: var(--text-muted); }
+  .result .value { font-family: var(--mono); font-size: 13px; font-weight: 600; }
+  .result.order .value { color: var(--accent); font-size: 15px; }
 
   .summary-card {
     background: var(--card);
@@ -197,10 +227,100 @@
     vertical-align: middle;
     border: 1px solid rgba(0,0,0,0.15);
   }
+  .ext-base-tag {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    color: #9a3412;
+    background: #ffedd5;
+    border: 1px solid #fb923c;
+    border-radius: 3px;
+    padding: 1px 6px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+  .ext-base-note {
+    margin-top: 12px;
+    padding: 10px 14px;
+    background: #fff7ed;
+    border: 1px solid #fb923c;
+    border-radius: 6px;
+    font-size: 12.5px;
+    color: #7c2d12;
+  }
+  td.over-capacity {
+    color: #b91c1c;
+    font-weight: 700;
+    background: #fef2f2;
+  }
   .elev-header.grouped {
-    margin: -16px -18px 12px -18px;
-    padding: 12px 18px;
+    margin: -12px -14px 8px -14px;
+    padding: 8px 14px;
     border-radius: 10px 10px 0 0;
+  }
+  .sc-notes {
+    width: 100%;
+    min-height: 70px;
+    font-family: inherit;
+    font-size: 13px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+    resize: vertical;
+    margin-top: 8px;
+    box-sizing: border-box;
+  }
+  .plan-pin {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: 0 0 0 1.5px rgba(0,0,0,0.4), 0 1px 3px rgba(0,0,0,0.3);
+    transform: translate(-50%, -50%);
+  }
+  .photo-box {
+    position: relative;
+    flex: 0 0 220px;
+    width: 220px;
+    height: 220px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--card);
+    cursor: pointer;
+  }
+  .photo-box img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .photo-box-empty {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    font-size: 13px;
+    text-align: center;
+    padding: 12px;
+  }
+  .photo-box-empty:hover { background: var(--accent-light); }
+  .photo-box-remove {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    line-height: 1;
+    font-size: 12px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.6);
+    color: white;
+    cursor: pointer;
+  }
+  @media print {
+    .card-with-photo { break-inside: avoid; align-items: flex-start !important; }
+    .photo-box-remove { display: none !important; }
   }
 
   /* ---- Report-style header (ported from Progress Report Builder) ---- */
@@ -209,7 +329,7 @@
     overflow: hidden;
     border-bottom: 2px solid #14181f;
     padding: 28px 40px 0 40px;
-    background: #f4f1ea;
+    background: #ffffff;
     border-radius: 8px 8px 0 0;
     margin-bottom: 20px;
   }
@@ -226,8 +346,9 @@
   .tb-cell:last-child { border-right: none; }
   .tb-cell .lbl { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 5px; }
   .tb-cell .val { font-size: 13px; font-weight: 500; color: #14181f; word-break: break-word; }
-  .tb-cell input.val { border: none; background: transparent; padding: 0; width: 100%; font-family: inherit; }
-  .tb-cell input.val:focus { outline: 1px solid var(--accent, #6b7fd7); outline-offset: 2px; border-radius: 2px; }
+  .tb-cell div.val { outline: none; min-height: 1.2em; white-space: normal; }
+  .tb-cell div.val:focus { outline: 1px solid var(--accent, #6b7fd7); outline-offset: 2px; border-radius: 2px; }
+  .tb-cell div.val:empty:before { content: attr(data-placeholder); color: #9a958a; }
 
   /* ---- App bar (matches Progress Report Builder) ---- */
   .appbar {
@@ -269,7 +390,6 @@
   }
   .plan-marker-label {
     position: absolute;
-    transform: translate(-50%, 4px);
     font-family: var(--mono);
     font-size: 10px;
     background: rgba(255,255,255,0.9);
@@ -277,6 +397,147 @@
     border-radius: 3px;
     white-space: nowrap;
     pointer-events: none;
+  }
+  .plan-marker-label.label-elev {
+    text-align: center;
+    line-height: 1.15;
+    font-size: 9px;
+    padding: 1px 3px;
+  }
+  .plan-marker-label.label-elev.orient-h { transform: translate(-50%, 0); margin-top: 8px; }
+  .plan-marker-label.label-elev.orient-v { transform: translate(6px, -50%); text-align: left; }
+  .plan-marker-label.label-pin.dir-ur { transform: translate(0, -100%); margin-top: -3px; margin-left: 3px; }
+  .plan-marker-label.label-pin.dir-ul { transform: translate(-100%, -100%); margin-top: -3px; margin-left: -3px; }
+  .plan-marker-label.label-pin.dir-dr { transform: translate(0, 0); margin-top: 3px; margin-left: 3px; }
+  .plan-marker-label.label-pin.dir-dl { transform: translate(-100%, 0); margin-top: 3px; margin-left: -3px; }
+  .plan-view.marking { cursor: crosshair; }
+  .mplan-datum-box {
+    position: absolute;
+    transform: translate(0, -50%);
+    background: #eff6ff;
+    border: 1.5px solid #1d4ed8;
+    color: #1d4ed8;
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 2;
+  }
+  .mplan-width-label {
+    position: absolute;
+    color: #b91c1c;
+    font-family: var(--mono);
+    font-size: 9px;
+    font-weight: 700;
+    background: rgba(255,255,255,0.9);
+    padding: 1px 3px;
+    border-radius: 3px;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  .mplan-width-label.orient-h { transform: translate(-50%, 0); margin-top: 8px; }
+  .mplan-width-label.orient-v { transform: translate(6px, -50%); }
+  .mplan-width-label.orient-h-flip { transform: translate(-50%, -100%); margin-top: -8px; }
+  .mplan-width-label.orient-v-flip { transform: translate(calc(-100% - 6px), -50%); }
+  .mplan-height-label {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    color: #1d4ed8;
+    font-family: var(--mono);
+    font-size: 8px;
+    font-weight: 700;
+    background: rgba(255,255,255,0.85);
+    padding: 0 2px;
+    border-radius: 2px;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  .mplan-view { position: relative; width: 100%; border-radius: 8px; overflow: hidden; }
+  .mplan-view img { width: 100%; height: auto; display: block; }
+  .mplan-view svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+  .mplan-view.marking { cursor: crosshair; }
+  .mplan-markup-wrap {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    z-index: 3;
+  }
+  .mplan-markup {
+    background: #fef9c3;
+    color: #713f12;
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 3px 16px 3px 5px;
+    border-radius: 3px;
+    min-width: 16px;
+    min-height: 14px;
+    max-width: 320px;
+    max-height: 240px;
+    width: 90px;
+    height: 40px;
+    white-space: normal;
+    word-break: break-word;
+    resize: both;
+    overflow: auto;
+  }
+  .mplan-markup:empty:before { content: "Type note…"; color: #a68a3a; }
+  .mplan-markup:focus { outline: 1.5px solid #ca8a04; outline-offset: 1px; }
+  .mplan-markup-remove {
+    position: absolute;
+    top: 1px;
+    right: 1px;
+    width: 14px;
+    height: 14px;
+    padding: 0;
+    line-height: 1;
+    font-size: 9px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.15);
+    color: #713f12;
+    cursor: pointer;
+  }
+  .plan-view svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+  .plan-line-endpoint { fill: white; stroke-width: 2; }
+  .plan-upload-empty {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 220px; border: 2px dashed var(--border); border-radius: 8px;
+    color: var(--text-muted); font-size: 13px; text-align: center; padding: 20px;
+  }
+  .elev-mark-row { display: flex; align-items: center; gap: 10px; margin: 4px 0 8px; }
+  .elev-mark-status { font-family: var(--mono); font-size: 11px; color: var(--text-muted); }
+  .leader-dir-btn { padding: 4px 7px; font-size: 13px; }
+  .leader-dir-btn.active { background: var(--accent-light); color: var(--accent); font-weight: 700; }
+
+  .plan-section { margin-bottom: 20px; }
+  .plan-section + .plan-section { margin-top: 44px; padding-top: 28px; border-top: 3px double var(--border); }
+  .plan-section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+  .plan-section-title {
+    font-size: 17px;
+    font-weight: 700;
+    border: none;
+    background: transparent;
+    border-bottom: 1px dashed transparent;
+    padding: 2px 0;
+    flex: 1;
+    min-width: 160px;
+  }
+  .plan-section-title:focus { outline: none; border-bottom-color: var(--accent); }
+  .plan-section-sub-actions { display: flex; align-items: center; gap: 10px; margin: 10px 0 16px; flex-wrap: wrap; }
+  .add-plan-section-row { margin: 28px 0; text-align: center; }
+
+  @media print {
+    .plan-section + .plan-section { break-before: page; margin-top: 0; padding-top: 0; border-top: none; }
+    .add-plan-section-row { display: none !important; }
+    .plan-display-controls { display: none !important; }
   }
 
   @media print {
@@ -286,7 +547,58 @@
     .elevation-card, .summary-card { break-inside: avoid; border: 1px solid #999; }
     button { display: none; }
     input { border: none !important; }
+    .val-field { border: none !important; padding: 2px 2px !important; }
+    .sc-notes { border: none !important; resize: none !important; padding: 2px 0 !important; background: transparent !important; min-height: 0 !important; }
+    .elev-mark-row { display: none !important; }
+    .print-hide { display: none !important; }
     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    /* Keep the photo box from crowding the card's field row into wrapping on export */
+    .photo-box { flex: 0 0 160px !important; width: 160px !important; height: 160px !important; }
+    .field-row { gap: 10px !important; }
+    .field input[type="number"] { font-size: 12px !important; width: 40px !important; }
+    .result-block { gap: 14px !important; }
+    /* Everything from Base Leveler Range onward (settings + summary tables) starts its own page */
+    #levelerSettings { display: none !important; }
+    #summaryContainer { break-before: page; }
+    /* Site conditions start together on their own fresh page, separate from the
+       elevations above them — otherwise a straggler card that doesn't fit the remaining
+       space on the elevations' last page gets pushed alone onto an otherwise-blank page. */
+    .sc-group-start { break-before: page; }
+
+    /* Chrome's print dialog only supports one physical page orientation for the whole
+       print job — CSS named pages (@page X { size: landscape }) look correct in the spec
+       but Chrome silently squishes the "landscape" content into the portrait page
+       dimensions instead of actually rotating the physical page (long-standing Chromium
+       limitation, not something fixable from our CSS). The reliable fix is rotating the
+       Measurement Plan's own content 90° so it fills a portrait page sideways — same trick
+       used for landscape exhibits/tables in printed reports. Reader turns the printed page
+       (or the PDF, most viewers rotate on request) to read it right-side up.
+       This assumes the print job stays on Portrait — @page below biases the print dialog's
+       default toward Portrait, but if the person manually switches it to Landscape, our
+       rotation and the page's own new landscape shape fight each other and Chrome splits
+       the content across two pages (looks like duplicated content). Leave Portrait selected.
+       Using flexbox centering here instead of absolute+top/left+translate% — the percentage
+       math version wasn't behaving reliably in Chrome's print engine (content sat high on
+       the page with dead space below instead of centering). Flex centering is the more
+       robust, well-tested pattern for this. */
+    @page { size: portrait; }
+    .mplan-print-page {
+      break-before: page;
+      break-after: page;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 10in;
+      overflow: visible;
+      border: none !important;
+    }
+    .mplan-rotate-inner {
+      width: 9.5in;
+      height: auto;
+      max-height: 7in;
+      transform: rotate(90deg);
+      flex: none;
+    }
   }
 </style>
 </head>
@@ -295,10 +607,11 @@
 <div class="appbar">
   <div class="brand"><img src="data:image/png;base64,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" alt="Corporate Environments"><span>Frame Report</span></div>
   <div class="actions">
-    <button class="btn" onclick="refreshFromField()">Refresh from field data</button>
-    <button class="btn" onclick="addElevation()">Add elevation</button>
-    <button class="btn" onclick="window.print()">Export PDF</button>
-    <button class="btn primary" onclick="saveOrder()">Save to SharePoint</button>
+    <button class="btn" onclick="window.print()" title="Keep the print dialog set to Portrait — the Measurement Plan rotates itself automatically. Selecting Landscape there will break its layout.">Export PDF</button>
+    <input type="file" id="jsonFileInput" accept="application/json" style="display:none;" onchange="loadFromJson(this.files[0]); this.value='';">
+    <button class="btn" onclick="document.getElementById('jsonFileInput').click()">Load from JSON</button>
+    <button class="btn primary" onclick="saveToJson()">Save As (JSON)</button>
+    <button class="btn" onclick="saveOrder()">Save to SharePoint</button>
   </div>
 </div>
 
@@ -316,18 +629,17 @@
       <div class="tb-sheet">GENERATED<br><strong style="color:#14181f; font-size:14px;" id="reportDate">—</strong></div>
     </div>
     <div class="tb-grid">
-      <div class="tb-cell"><span class="lbl">Client</span><input class="val" id="metaClient" placeholder="—" onchange="updateProjectMeta('client', this.value)"></div>
-      <div class="tb-cell"><span class="lbl">Location</span><input class="val" id="metaLocation" placeholder="—" onchange="updateProjectMeta('location', this.value)"></div>
-      <div class="tb-cell"><span class="lbl">DIRTT PM</span><input class="val" id="metaDirttPM" placeholder="—" onchange="updateProjectMeta('dirttPM', this.value)"></div>
-      <div class="tb-cell"><span class="lbl">Install Supervisor</span><input class="val" id="metaInstallSupervisor" placeholder="—" onchange="updateProjectMeta('installSupervisor', this.value)"></div>
-      <div class="tb-cell"><span class="lbl">Contractor</span><input class="val" id="metaContractor" placeholder="—" onchange="updateProjectMeta('contractor', this.value)"></div>
+      <div class="tb-cell"><span class="lbl">Client</span><div class="val" id="metaClient" contenteditable="true" spellcheck="false" data-placeholder="—" onblur="updateProjectMeta('client', this.textContent)"></div></div>
+      <div class="tb-cell"><span class="lbl">Location</span><div class="val" id="metaLocation" contenteditable="true" spellcheck="false" data-placeholder="—" onblur="updateProjectMeta('location', this.textContent)"></div></div>
+      <div class="tb-cell"><span class="lbl">DIRTT PM</span><div class="val" id="metaDirttPM" contenteditable="true" spellcheck="false" data-placeholder="—" onblur="updateProjectMeta('dirttPM', this.textContent)"></div></div>
+      <div class="tb-cell"><span class="lbl">Install Supervisor</span><div class="val" id="metaInstallSupervisor" contenteditable="true" spellcheck="false" data-placeholder="—" onblur="updateProjectMeta('installSupervisor', this.textContent)"></div></div>
+      <div class="tb-cell"><span class="lbl">Contractor</span><div class="val" id="metaContractor" contenteditable="true" spellcheck="false" data-placeholder="—" onblur="updateProjectMeta('contractor', this.textContent)"></div></div>
     </div>
   </div>
 </div>
 
 <div id="status"></div>
-<div id="planViewContainer"></div>
-<div id="elevations"></div>
+<div id="planSectionsContainer"></div>
 <div id="levelerSettings"></div>
 <div id="summaryContainer"></div>
 
@@ -349,20 +661,40 @@
     render();
   }
 
-  let elevations = []; // { id, title, datum, carpetChecked, ceilingChecked, markerX, markerY, positions: [{position, variance, calculatedHeight}] } — Frame Adjustment is computed, not stored
+  let elevations = []; // { id, sectionId, title, datum, carpetChecked, ceilingChecked, lineX1, lineY1, lineX2, lineY2, positions: [{position, variance, calculatedHeight}] } — Frame Adjustment is computed, not stored
+  let siteConditions = []; // { id, sectionId, title, notes, pinX, pinY } — plain flat records, no grouping/positions
+  let planSections = []; // { id, title, planImageUrl } — each holds its own plan image; elevations/siteConditions reference one via sectionId
+  let planMarkups = []; // { id, sectionId, x, y, text } — free-text notes dropped on the Measurement Plan view
+  let markLineIdx = null; // index of elevation currently being marked, or null
+  let markStage = null;   // "start" | "end" | null — which click we're waiting for
+  let markPinIdx = null;  // index of site condition currently being pinned, or null
+  let markMarkupSectionId = null; // section id currently in "click to add markup" mode, or null
+  let confirmRemoveIdx = null; // index of elevation pending removal confirmation, or null
+  let confirmRemoveScIdx = null; // index of site condition pending removal confirmation, or null
+  let confirmRemoveSectionId = null; // id of plan section pending removal confirmation, or null
+  let openNotesIds = new Set(); // elevation ids with their notes area expanded
   let nextLocalId = 1;
-  let planImageUrl = "";
 
   // ---- Base leveler adjustment range ----
-  // Raise shrinks the effective installed height (lets a taller order fit a shorter opening).
-  // Drop grows the effective installed height (lets a shorter order fit a taller opening).
+  // Order Height is the fixed frame height being ordered. At each position, the leveler
+  // adjusts from that fixed height to whatever the position actually needs: RAISE extends
+  // the frame UP (needed to reach the tallest/max position, if Order Height is below it);
+  // DROP retracts it DOWN (needed to reach the shortest/natural position, if Order Height is
+  // above it). So raise capacity governs how low Order Height can go relative to max, and
+  // drop capacity governs how high it can go relative to natural height — see computeGroups().
   // Reserve = capacity intentionally left unused as a safety margin, applied uniformly across leveler types.
   // Capacities themselves are fixed per leveler hardware (set per elevation via Leveler Type).
   const LEVELER_CAPACITIES = {
-    Classic: { raiseCapacity: 0.375, dropCapacity: 1 },
-    Inspire: { raiseCapacity: 0.5, dropCapacity: 0.625 }
+    Classic: { raiseCapacity: 1.125, dropCapacity: 0.375 },
+    Inspire: { raiseCapacity: 0.625, dropCapacity: 0.5 }
   };
-  let levelerSettings = { raiseReserve: 0.125, dropReserve: 0, groupDropLimit: 0.375 };
+  // Extended Base swaps in longer hardware (Classic: Extended Drive Collar; Inspire: extended
+  // leveler stud) that shifts the whole adjustable range higher — same raise/drop capacity,
+  // just starting from a taller baseline. Applied as a shift to natural height, not to
+  // raiseCapacity/dropCapacity.
+  const EXTENDED_BASE_SHIFT = { Classic: 1.5, Inspire: 0.75 };
+  let levelerSettings = { raiseReserve: 0, dropReserve: 0.125, groupDropLimit: 0.375, globalDatum: 60, globalLevelerType: "Classic" };
+  // (line thickness / label text size live per-section on planSections now, not globally)
 
   function leverageForElevation(e) {
     const caps = LEVELER_CAPACITIES[e.levelerType] || LEVELER_CAPACITIES.Classic;
@@ -374,32 +706,564 @@
 
   const GROUP_COLORS = ["#FDE68A","#BFDBFE","#BBF7D0","#FBCFE8","#DDD6FE","#FCA5A5","#99F6E4","#FED7AA","#C7D2FE","#D9F99D"];
   function groupColor(i) { return GROUP_COLORS[i % GROUP_COLORS.length]; }
+  const SITE_CONDITION_COLORS = ["#DB2777","#7C3AED","#0EA5E9","#059669","#EA580C","#DC2626","#4338CA","#0D9488","#B45309","#BE185D"]; // saturated, distinct from the pastel GROUP_COLORS above
+  function siteConditionColor(i) { return SITE_CONDITION_COLORS[i % SITE_CONDITION_COLORS.length]; }
+  // Individual per-elevation colors for the Measurement Plan view — distinct from both the
+  // pastel GROUP_COLORS (which represent shared order-height groups) and SITE_CONDITION_COLORS.
+  const ELEVATION_COLORS = ["#0891B2","#65A30D","#C2410C","#7C3AED","#BE123C","#0D9488","#4D7C0F","#9333EA","#B45309","#1D4ED8"];
+  function elevationColor(i) { return ELEVATION_COLORS[i % ELEVATION_COLORS.length]; }
 
-  function renderPlanView() {
-    const container = document.getElementById("planViewContainer");
-    if (!planImageUrl) {
-      container.innerHTML = "";
+  // ---- Plan upload (image or PDF, first page) — shared by "new section" and "replace plan" ----
+  function processPlanFile(file, callback) {
+    if (!file) return;
+    if (file.type === "application/pdf") {
+      const reader = new FileReader();
+      reader.onload = async function() {
+        try {
+          const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(reader.result) }).promise;
+          const page = await pdf.getPage(1);
+          const viewport = page.getViewport({ scale: 2 });
+          const canvas = document.createElement("canvas");
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          await page.render({ canvasContext: canvas.getContext("2d"), viewport }).promise;
+          callback(canvas.toDataURL("image/png"));
+        } catch (err) {
+          setStatus("Couldn't render PDF: " + err.message, "error");
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    } else if (file.type.startsWith("image/")) {
+      const reader = new FileReader();
+      reader.onload = function() {
+        callback(reader.result);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      setStatus("Unsupported file type — upload an image or PDF.", "error");
+    }
+  }
+
+  function addPlanSectionFromFile(file) {
+    processPlanFile(file, (url) => {
+      const section = {
+        id: "section-" + (nextLocalId++),
+        title: "Plan " + (planSections.length + 1),
+        planImageUrl: url,
+        planViewDisplay: { lineThickness: 4, labelTextSize: 9, outlineColor: "#000000", outlineWidth: 1 },
+        mplanDisplay: { lineThickness: 4, labelTextSize: 9, outlineColor: "#000000", outlineWidth: 1 }
+      };
+      planSections.push(section);
+      render();
+      const el = document.getElementById("plan-section-" + section.id);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
+
+  function replacePlanImage(sectionId, file) {
+    processPlanFile(file, (url) => {
+      const section = planSections.find(s => s.id === sectionId);
+      if (section) section.planImageUrl = url;
+      render();
+    });
+  }
+
+  function updatePlanSectionTitle(sectionId, value) {
+    const section = planSections.find(s => s.id === sectionId);
+    if (section) section.title = (value || "").trim() || section.title;
+    render();
+  }
+
+  function removePlanSection(sectionId) {
+    confirmRemoveSectionId = sectionId;
+    render();
+  }
+
+  function confirmRemovePlanSection(sectionId) {
+    planSections = planSections.filter(s => s.id !== sectionId);
+    elevations = elevations.filter(e => e.sectionId !== sectionId);
+    siteConditions = siteConditions.filter(sc => sc.sectionId !== sectionId);
+    planMarkups = planMarkups.filter(m => m.sectionId !== sectionId);
+    confirmRemoveSectionId = null;
+    if (markLineIdx !== null && !elevations[markLineIdx]) { markLineIdx = null; markStage = null; }
+    if (markPinIdx !== null && !siteConditions[markPinIdx]) { markPinIdx = null; }
+    if (markMarkupSectionId === sectionId) markMarkupSectionId = null;
+    render();
+  }
+
+  function cancelRemovePlanSection() {
+    confirmRemoveSectionId = null;
+    render();
+  }
+
+  // ---- Markups: free-text notes dropped on the Measurement Plan view ----
+  function startAddMarkup(sectionId) {
+    markMarkupSectionId = sectionId;
+    markLineIdx = null; markStage = null; markPinIdx = null;
+    render();
+  }
+
+  function cancelAddMarkup() {
+    markMarkupSectionId = null;
+    render();
+  }
+
+  function handleMeasurementPlanClick(evt, sectionId) {
+    if (markMarkupSectionId !== sectionId) return;
+    const img = evt.currentTarget.querySelector("img");
+    const rect = img.getBoundingClientRect();
+    const xPct = ((evt.clientX - rect.left) / rect.width) * 100;
+    const yPct = ((evt.clientY - rect.top) / rect.height) * 100;
+    const markup = { id: "markup-" + (nextLocalId++), sectionId, x: xPct, y: yPct, text: "" };
+    planMarkups.push(markup);
+    markMarkupSectionId = null;
+    render();
+    const el = document.getElementById(markup.id);
+    if (el) el.focus();
+  }
+
+  function updateMarkupText(id, el) {
+    const m = planMarkups.find(m => m.id === id);
+    if (m) m.text = (el.textContent || "").trim();
+    // Drop it silently if left empty — no point keeping a blank note on the plan.
+    if (m && !m.text) {
+      planMarkups = planMarkups.filter(x => x.id !== id);
+      render();
+    }
+  }
+
+  // Reads back whatever size the user dragged the note's resize handle to (native CSS
+  // `resize`) and stores it in px so it survives the next render() instead of snapping
+  // back to the default size.
+  function captureMarkupSize(id, el) {
+    const m = planMarkups.find(m => m.id === id);
+    if (!m) return;
+    m.w = el.offsetWidth;
+    m.h = el.offsetHeight;
+  }
+
+  function removeMarkup(id) {
+    planMarkups = planMarkups.filter(m => m.id !== id);
+    render();
+  }
+
+  // ---- Photo: one per elevation/site condition, report-style. Full-res stays on the
+  // device (picked via file input); only a moderate-size image is generated and saved
+  // into the document for reference/print. ----
+  const PHOTO_MAX_DIM = 500;
+
+  function generateThumbnail(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = function() {
+        const img = new Image();
+        img.onload = function() {
+          let { width, height } = img;
+          if (width > height && width > PHOTO_MAX_DIM) {
+            height = Math.round(height * (PHOTO_MAX_DIM / width));
+            width = PHOTO_MAX_DIM;
+          } else if (height > PHOTO_MAX_DIM) {
+            width = Math.round(width * (PHOTO_MAX_DIM / height));
+            height = PHOTO_MAX_DIM;
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL("image/jpeg", 0.8));
+        };
+        img.onerror = reject;
+        img.src = reader.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function handlePhotoUpload(kind, idx, file) {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setStatus("Unsupported file type — choose a photo.", "error");
       return;
     }
-    const { elevToGroup } = computeGroups();
-    const markers = elevations.map((e, idx) => {
-      if (e.markerX == null || e.markerY == null) return "";
-      const color = groupColor(elevToGroup[idx] ?? 0);
+    try {
+      const thumbnail = await generateThumbnail(file);
+      const record = kind === "elevation" ? elevations[idx] : siteConditions[idx];
+      record.photo = { id: "photo-" + (nextLocalId++), thumbnail, filename: file.name || "" };
+      render();
+    } catch (err) {
+      setStatus("Couldn't process photo: " + err.message, "error");
+    }
+  }
+
+  function removePhoto(kind, idx) {
+    const record = kind === "elevation" ? elevations[idx] : siteConditions[idx];
+    record.photo = null;
+    render();
+  }
+
+  function photoBoxHtml(kind, idx, photo) {
+    const inputHtml = `<input type="file" accept="image/*" capture="environment" style="display:none;" onchange="handlePhotoUpload('${kind}', ${idx}, this.files[0]); this.value='';">`;
+    if (photo && photo.thumbnail) {
       return `
-        <div class="plan-marker" style="left:${e.markerX}%; top:${e.markerY}%; background:${color};" title="${e.title}"></div>
-        <div class="plan-marker-label" style="left:${e.markerX}%; top:${e.markerY}%;">${e.title}</div>
+        <div class="photo-box">
+          <label>
+            <img src="${photo.thumbnail}" alt="${photo.filename || 'Photo'}">
+            ${inputHtml}
+          </label>
+          <button type="button" class="photo-box-remove" onclick="removePhoto('${kind}', ${idx})" title="Remove photo">✕</button>
+        </div>
+      `;
+    }
+    return `
+      <div class="photo-box">
+        <label class="photo-box-empty">
+          + Add Photo
+          ${inputHtml}
+        </label>
+      </div>
+    `;
+  }
+
+  // ---- Line marking (click start point, click end point) ----
+  function startMarkLine(idx) {
+    const sectionId = elevations[idx].sectionId;
+    const section = planSections.find(s => s.id === sectionId);
+    if (!section || !section.planImageUrl) {
+      setStatus("Upload a plan for this section before marking elevation lines.", "error");
+      return;
+    }
+    markLineIdx = idx;
+    markStage = "start";
+    markPinIdx = null;
+    render();
+    const el = document.getElementById("plan-section-" + sectionId);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function clearLine(idx) {
+    const e = elevations[idx];
+    e.lineX1 = e.lineY1 = e.lineX2 = e.lineY2 = null;
+    if (markLineIdx === idx) { markLineIdx = null; markStage = null; }
+    render();
+  }
+
+  function toggleLabelFlip(idx) {
+    elevations[idx].labelFlip = !elevations[idx].labelFlip;
+    render();
+  }
+
+  function startMarkPin(idx) {
+    const sectionId = siteConditions[idx].sectionId;
+    const section = planSections.find(s => s.id === sectionId);
+    if (!section || !section.planImageUrl) {
+      setStatus("Upload a plan for this section before marking a site condition pin.", "error");
+      return;
+    }
+    markPinIdx = idx;
+    markLineIdx = null;
+    markStage = null;
+    render();
+    const el = document.getElementById("plan-section-" + sectionId);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function clearPin(idx) {
+    const sc = siteConditions[idx];
+    sc.pinX = sc.pinY = null;
+    if (markPinIdx === idx) markPinIdx = null;
+    render();
+  }
+
+  // Only the plan belonging to the record currently being marked responds to clicks —
+  // other sections' plans stay inert while marking is in progress.
+  function handlePlanClick(evt, sectionId) {
+    if (markLineIdx === null && markPinIdx === null) return;
+    if (markLineIdx !== null && elevations[markLineIdx].sectionId !== sectionId) return;
+    if (markPinIdx !== null && siteConditions[markPinIdx].sectionId !== sectionId) return;
+    const img = evt.currentTarget.querySelector("img");
+    const rect = img.getBoundingClientRect();
+    const xPct = ((evt.clientX - rect.left) / rect.width) * 100;
+    const yPct = ((evt.clientY - rect.top) / rect.height) * 100;
+    if (markLineIdx !== null) {
+      const e = elevations[markLineIdx];
+      if (markStage === "start") {
+        e.lineX1 = xPct; e.lineY1 = yPct;
+        markStage = "end";
+        render();
+      } else if (markStage === "end") {
+        // Snap to a perfectly straight horizontal or vertical run instead of the raw
+        // (likely slightly diagonal) two-click points — whichever axis the drag was closer
+        // to wins. Compares actual pixel distance (not raw % deltas) so it's accurate even
+        // when the plan image isn't square.
+        const dxPx = (xPct - e.lineX1) * rect.width / 100;
+        const dyPx = (yPct - e.lineY1) * rect.height / 100;
+        if (Math.abs(dxPx) >= Math.abs(dyPx)) {
+          e.lineX2 = xPct; e.lineY2 = e.lineY1;
+        } else {
+          e.lineX2 = e.lineX1; e.lineY2 = yPct;
+        }
+        markLineIdx = null; markStage = null;
+        render();
+        scrollToCard("elevation-card-" + e.id);
+      }
+    } else if (markPinIdx !== null) {
+      const sc = siteConditions[markPinIdx];
+      sc.pinX = xPct; sc.pinY = yPct;
+      markPinIdx = null;
+      render();
+      scrollToCard("sc-card-" + sc.id);
+    }
+  }
+
+  function scrollToCard(elementId) {
+    const el = document.getElementById(elementId);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  // Renders one plan section's plan-view block: image + overlay for just that section's
+  // elevations/siteConditions (grouping/colors still come from the global computeGroups()).
+  function renderSectionPlanView(section) {
+    const { elevToGroup } = computeGroups();
+    const sectionElevs = elevations.map((e, idx) => ({ e, idx })).filter(p => p.e.sectionId === section.id);
+    const sectionScs = siteConditions.map((sc, idx) => ({ sc, idx })).filter(p => p.sc.sectionId === section.id);
+
+    if (!section.planImageUrl) {
+      return `<div class="plan-upload-empty">No plan uploaded for this section yet. Use "Replace Plan" below to upload an image or PDF.</div>`;
+    }
+
+    const pvd = section.planViewDisplay || { lineThickness: 4, labelTextSize: 9, outlineColor: "#000000", outlineWidth: 1 };
+    const thickness = pvd.lineThickness ?? 4;
+    const pvOutlineColor = pvd.outlineColor ?? "#000000";
+    const pvOutlineWidth = pvd.outlineWidth ?? 1;
+    const pvOutlineStyle = pvOutlineWidth > 0 ? `border:${pvOutlineWidth}px solid ${pvOutlineColor};` : `border:none;`;
+    const lines = sectionElevs.map(({ e, idx }) => {
+      const color = groupColor(elevToGroup[idx] ?? 0);
+      const parts = [];
+      if (e.lineX1 != null && e.lineY1 != null && e.lineX2 != null && e.lineY2 != null) {
+        parts.push(`<line x1="${e.lineX1}%" y1="${e.lineY1}%" x2="${e.lineX2}%" y2="${e.lineY2}%" stroke="${color}" stroke-width="${thickness}" stroke-linecap="round" />`);
+        parts.push(`<circle class="plan-line-endpoint" cx="${e.lineX1}%" cy="${e.lineY1}%" r="5" stroke="${color}" />`);
+        parts.push(`<circle class="plan-line-endpoint" cx="${e.lineX2}%" cy="${e.lineY2}%" r="5" stroke="${color}" />`);
+      } else if (e.lineX1 != null && e.lineY1 != null) {
+        parts.push(`<circle class="plan-line-endpoint" cx="${e.lineX1}%" cy="${e.lineY1}%" r="5" stroke="${color}" />`);
+      }
+      return parts.join("");
+    }).join("");
+
+    // Elevation labels sit directly on the line's midpoint. For horizontal lines the label
+    // sits below (so it doesn't compete with pin labels, which float above); for vertical
+    // lines "below" doesn't make sense — sits to the right instead. Title is split onto two
+    // short stacked lines ("Elev" / "C/D 1") either way so each label takes less room.
+    const labelSize = pvd.labelTextSize ?? 9;
+    const labels = sectionElevs.map(({ e }) => {
+      if (e.lineX1 == null || e.lineY1 == null || e.lineX2 == null || e.lineY2 == null) return "";
+      const midX = (e.lineX1 + e.lineX2) / 2;
+      const midY = (e.lineY1 + e.lineY2) / 2;
+      const isVertical = Math.abs(e.lineY2 - e.lineY1) > Math.abs(e.lineX2 - e.lineX1);
+      const orientClass = isVertical ? "orient-v" : "orient-h";
+      const spaceIdx = e.title.indexOf(" ");
+      const stacked = spaceIdx === -1 ? e.title : (e.title.slice(0, spaceIdx) + "<br>" + e.title.slice(spaceIdx + 1));
+      return `<div class="plan-marker-label label-elev ${orientClass}" style="left:${midX}%; top:${midY}%; font-size:${labelSize}px; ${pvOutlineStyle}">${stacked}</div>`;
+    }).join("");
+
+    const LEADER_DIR_OFFSETS = { ur: [4, -4], ul: [-4, -4], dr: [4, 4], dl: [-4, 4] };
+    const pinLeaders = sectionScs.map(({ sc, idx }) => {
+      if (sc.pinX == null || sc.pinY == null) return "";
+      const color = siteConditionColor(idx);
+      const [ox, oy] = LEADER_DIR_OFFSETS[sc.leaderDir || "ur"];
+      const labelX = Math.max(2, Math.min(96, sc.pinX + ox));
+      const labelY = Math.max(2, Math.min(96, sc.pinY + oy));
+      return `<line x1="${sc.pinX}%" y1="${sc.pinY}%" x2="${labelX}%" y2="${labelY}%" stroke="${color}" stroke-width="1" stroke-dasharray="2,2" />`;
+    }).join("");
+
+    const pins = sectionScs.map(({ sc, idx }) => {
+      if (sc.pinX == null || sc.pinY == null) return "";
+      const color = siteConditionColor(idx);
+      const [ox, oy] = LEADER_DIR_OFFSETS[sc.leaderDir || "ur"];
+      const labelX = Math.max(2, Math.min(96, sc.pinX + ox));
+      const labelY = Math.max(2, Math.min(96, sc.pinY + oy));
+      const dirClass = "dir-" + (sc.leaderDir || "ur");
+      return `
+        <div class="plan-pin" style="left:${sc.pinX}%; top:${sc.pinY}%; background:${color};" title="${sc.title}"></div>
+        <div class="plan-marker-label label-pin ${dirClass}" style="left:${labelX}%; top:${labelY}%; font-size:${labelSize}px; ${pvOutlineStyle}">${sc.title}</div>
       `;
     }).join("");
 
-    container.innerHTML = `
-      <div class="summary-card">
-        <h2>Plan View — Order Height Groups</h2>
-        <div class="plan-view">
-          <img src="${planImageUrl}" alt="Plan">
-          ${markers}
+    let statusLine = "";
+    if (markLineIdx !== null && elevations[markLineIdx].sectionId === section.id) {
+      statusLine = `<div class="elev-mark-status">Click the ${markStage === "start" ? "start" : "end"} point for "${elevations[markLineIdx].title}" on the plan below.</div>`;
+    } else if (markPinIdx !== null && siteConditions[markPinIdx].sectionId === section.id) {
+      statusLine = `<div class="elev-mark-status">Click the plan to drop a pin for "${siteConditions[markPinIdx].title}".</div>`;
+    }
+
+    const isMarkingHere = (markLineIdx !== null && elevations[markLineIdx].sectionId === section.id)
+      || (markPinIdx !== null && siteConditions[markPinIdx].sectionId === section.id);
+
+    return `
+      ${statusLine}
+      <div class="plan-view ${isMarkingHere ? "marking" : ""}" onclick="handlePlanClick(event, '${section.id}')">
+        <img src="${section.planImageUrl}" alt="Plan">
+        <svg>${lines}${pinLeaders}</svg>
+        ${labels}
+        ${pins}
+      </div>
+    `;
+  }
+
+  // ---- Measurement Plan: a second, read-only view for reference/print — individual color
+  // per elevation (not the shared order-height-group color), no site-condition pins, no
+  // elevation name labels; shows just a boxed datum tag and the width dimension per line.
+  // Pass 3 (not yet built) will add per-position variance/height labels distributed along
+  // each line.
+  function renderMeasurementPlanView(section) {
+    const sectionElevs = elevations.map((e, idx) => ({ e, idx })).filter(p => p.e.sectionId === section.id);
+    const linedElevs = sectionElevs.filter(({ e }) => e.lineX1 != null && e.lineY1 != null && e.lineX2 != null && e.lineY2 != null);
+    if (!section.planImageUrl || linedElevs.length === 0) return "";
+
+    const md = section.mplanDisplay || { lineThickness: 4, labelTextSize: 9, outlineColor: "#000000", outlineWidth: 1 };
+    const thickness = md.lineThickness ?? 4;
+    const labelSize = md.labelTextSize ?? 9;
+    const outlineColor = md.outlineColor ?? "#000000";
+    const outlineWidth = md.outlineWidth ?? 1;
+    const outlineStyle = outlineWidth > 0 ? `border:${outlineWidth}px solid ${outlineColor};` : `border:none;`;
+    const lines = linedElevs.map(({ e, idx }) => {
+      const color = elevationColor(idx);
+      return `<line x1="${e.lineX1}%" y1="${e.lineY1}%" x2="${e.lineX2}%" y2="${e.lineY2}%" stroke="${color}" stroke-width="${thickness}" stroke-linecap="round" />`;
+    }).join("");
+
+    // Datum is typically the same across every elevation in a section, so show it once
+    // (stacked if more than one distinct value appears) instead of repeating it per line.
+    const uniqueDatums = [...new Set(linedElevs.map(({ e }) => fractionDisplay(e.datum)))];
+    const datumBoxes = uniqueDatums.map((d, i) => {
+      return `<div class="mplan-datum-box" style="left:3%; top:${3 + i * 6}%; font-size:${labelSize}px;">Datum: ${d}</div>`;
+    }).join("");
+
+    // Width and height labels sit on fixed, opposite sides by default (width: below/right,
+    // heights: above/left) so they never collide. Each elevation's "Flip label side" toggle
+    // (on its card) swaps both to the opposite pair for that one elevation only.
+    const widthLabels = linedElevs.map(({ e }) => {
+      const midX = (e.lineX1 + e.lineX2) / 2;
+      const midY = (e.lineY1 + e.lineY2) / 2;
+      const isVertical = Math.abs(e.lineY2 - e.lineY1) > Math.abs(e.lineX2 - e.lineX1);
+      const base = isVertical ? "orient-v" : "orient-h";
+      const orientClass = e.labelFlip ? base + "-flip" : base;
+      const adjWidth = decimalToFeetInches(parseHeightToDecimal(e.width) - (WALL_DEDUCTIONS[e.wallDeduction || "N/A"] || 0));
+      return `<div class="mplan-width-label ${orientClass}" style="left:${midX}%; top:${midY}%; font-size:${labelSize}px; ${outlineStyle}">${adjWidth}</div>`;
+    }).join("");
+
+    // Per-position heights (Datum + Variance), spread evenly along the line and offset
+    // just off it (perpendicular, in % space) so they read as a row of numbers alongside
+    // the line rather than sitting on top of it — matches the hand-marked-up reference.
+    // The offset direction is fixed by orientation (not derived from the line's raw dx/dy,
+    // which flips depending on which end was clicked first) and deliberately opposite the
+    // width label's side, so the two never collide: width sits below/right, heights sit
+    // above/left — unless this elevation's Flip toggle is on, which swaps both.
+    const heightLabels = linedElevs.map(({ e }, elevIdx) => {
+      const positions = e.positions || [];
+      if (positions.length === 0) return "";
+      const dx = e.lineX2 - e.lineX1, dy = e.lineY2 - e.lineY1;
+      const isVertical = Math.abs(dy) > Math.abs(dx);
+      const flipMul = e.labelFlip ? -1 : 1;
+      const perpX = (isVertical ? -1 : 0) * flipMul;
+      const perpY = (isVertical ? 0 : -1) * flipMul;
+      // Stagger alternating elevations' rows further from the line so one elevation's row of
+      // numbers doesn't run into the next elevation's row along the same overall run.
+      const offset = 2.4 + (elevIdx % 2) * 2.6;
+      const n = positions.length;
+      // On a vertical run, position order needs to read top-to-bottom to match how the
+      // elevation itself is laid out — flip the sequence so position 1 lands at whichever
+      // end that is, rather than following the line's arbitrary click start/end order.
+      const orderedPositions = isVertical ? [...positions].reverse() : positions;
+      return orderedPositions.map((p, i) => {
+        const t = n === 1 ? 0.5 : i / (n - 1);
+        const px = e.lineX1 + dx * t + perpX * offset;
+        const py = e.lineY1 + dy * t + perpY * offset;
+        const h = fractionDisplay(p.variance);
+        if (!h) return "";
+        return `<div class="mplan-height-label" style="left:${px}%; top:${py}%; font-size:${labelSize}px; ${outlineStyle}">${h}</div>`;
+      }).join("");
+    }).join("");
+
+    const sectionMarkups = planMarkups.filter(m => m.sectionId === section.id);
+    const markupsHtml = sectionMarkups.map(m => {
+      const sizeStyle = (m.w && m.h) ? `width:${m.w}px; height:${m.h}px;` : "";
+      return `
+      <div class="mplan-markup-wrap" style="left:${m.x}%; top:${m.y}%;" onclick="event.stopPropagation()">
+        <div class="mplan-markup" id="${m.id}" contenteditable="true" spellcheck="false" style="${sizeStyle} font-size:${labelSize}px; ${outlineStyle}" onblur="updateMarkupText('${m.id}', this)" onmouseup="captureMarkupSize('${m.id}', this)">${m.text || ""}</div>
+        <button type="button" class="mplan-markup-remove" onclick="removeMarkup('${m.id}')" title="Remove note">✕</button>
+      </div>
+    `;
+    }).join("");
+
+    const isMarkingMarkup = markMarkupSectionId === section.id;
+    const markupStatus = isMarkingMarkup ? `<div class="elev-mark-status">Click the plan to add a note.</div>` : "";
+
+    return `
+      <div class="summary-card mplan-print-page">
+        <div class="mplan-rotate-inner">
+          <h2>Measurement Plan</h2>
+          ${markupStatus}
+          <div class="mplan-view ${isMarkingMarkup ? "marking" : ""}" onclick="handleMeasurementPlanClick(event, '${section.id}')">
+            <img src="${section.planImageUrl}" alt="Plan">
+            <svg>${lines}</svg>
+            ${datumBoxes}
+            ${widthLabels}
+            ${heightLabels}
+            ${markupsHtml}
+          </div>
+        </div>
+        <div class="plan-section-sub-actions">
+          ${isMarkingMarkup
+            ? `<button class="subtle" onclick="cancelAddMarkup()">Cancel</button>`
+            : `<button onclick="startAddMarkup('${section.id}')">+ Add Markup</button>`}
+          ${planDisplayControlsHtml(section, "mplanDisplay")}
         </div>
       </div>
     `;
+  }
+
+  // Line Thickness / Text Size (+ Outline, mplan only) steppers — fully independent per
+  // view: the interactive Plan View and the Measurement Plan each keep their own settings
+  // object (section.planViewDisplay / section.mplanDisplay), so adjusting one never affects
+  // the other. Hidden from print.
+  function planDisplayControlsHtml(section, viewKey) {
+    const d = section[viewKey] || { lineThickness: 4, labelTextSize: 9, outlineColor: "#000000", outlineWidth: 1 };
+    const thickness = d.lineThickness ?? 4;
+    const labelSize = d.labelTextSize ?? 9;
+    const outlineTitle = viewKey === "mplanDisplay"
+      ? "Outline around markup notes, width labels, and variance/height labels on this Measurement Plan"
+      : "Outline around elevation callouts on this plan";
+    const outlineHtml = `
+      <span class="plan-display-controls elev-mark-status" title="${outlineTitle}">Outline:</span>
+      <input class="plan-display-controls" type="color" value="${d.outlineColor ?? "#000000"}" style="width:26px; height:26px; padding:1px; border:1px solid var(--border); border-radius:4px; cursor:pointer;" onchange="updateSectionColor('${section.id}', '${viewKey}', 'outlineColor', this.value)">
+      <div class="plan-display-controls stepper">
+        <button type="button" class="stepper-btn" onclick="nudgeSectionDisplay('${section.id}', '${viewKey}', 'outlineWidth', -1, 0, 4)">−</button>
+        <div class="val-field" style="min-width:16px; text-align:center;">${d.outlineWidth ?? 1}</div>
+        <button type="button" class="stepper-btn" onclick="nudgeSectionDisplay('${section.id}', '${viewKey}', 'outlineWidth', 1, 0, 4)">+</button>
+      </div>
+    `;
+    return `
+      <span class="plan-display-controls elev-mark-status">Line thickness:</span>
+      <div class="plan-display-controls stepper">
+        <button type="button" class="stepper-btn" onclick="nudgeSectionDisplay('${section.id}', '${viewKey}', 'lineThickness', -1, 1, 12)">−</button>
+        <div class="val-field" style="min-width:16px; text-align:center;">${thickness}</div>
+        <button type="button" class="stepper-btn" onclick="nudgeSectionDisplay('${section.id}', '${viewKey}', 'lineThickness', 1, 1, 12)">+</button>
+      </div>
+      <span class="plan-display-controls elev-mark-status">Text size:</span>
+      <div class="plan-display-controls stepper">
+        <button type="button" class="stepper-btn" onclick="nudgeSectionDisplay('${section.id}', '${viewKey}', 'labelTextSize', -1, 3, 16)">−</button>
+        <div class="val-field" style="min-width:16px; text-align:center;">${labelSize}</div>
+        <button type="button" class="stepper-btn" onclick="nudgeSectionDisplay('${section.id}', '${viewKey}', 'labelTextSize', 1, 3, 16)">+</button>
+      </div>
+      ${outlineHtml}
+    `;
+  }
+  function updateSectionColor(sectionId, viewKey, field, value) {
+    const section = planSections.find(s => s.id === sectionId);
+    if (!section) return;
+    if (!section[viewKey]) section[viewKey] = {};
+    section[viewKey][field] = value;
+    render();
   }
 
   function stepperField(label, field, value, title) {
@@ -419,9 +1283,23 @@
         <span class="settings-title">Base Leveler Range</span>
         ${stepperField("Raise reserve", "raiseReserve", levelerSettings.raiseReserve)}
         ${stepperField("Drop reserve", "dropReserve", levelerSettings.dropReserve)}
-        ${stepperField("Group drop limit", "groupDropLimit", levelerSettings.groupDropLimit, "Caps drop variation within one group — lower this to force more (tighter) groups even if the leveler could physically span the whole set.")}
+        ${stepperField("Group raise limit", "groupDropLimit", levelerSettings.groupDropLimit, "Caps how much extra raise (beyond what an elevation needs on its own) it will accept to share an order height with others — lower this to force more (tighter) groups even if the leveler could physically span the whole set.")}
       </div>
-      <div class="hint" style="margin-top:6px;">Raise/drop capacities come from each elevation's Leveler Type (Classic: 3/8" raise, 1" drop — Inspire: 1/2" raise, 5/8" drop). Reserve and group drop limit apply uniformly across types. "Group drop limit" caps how much extra drop (beyond what an elevation would need on its own) it will accept to share an order height with others.</div>
+      <div class="hint" style="margin-top:6px;">Raise/drop capacities come from each elevation's Leveler Type (Classic: 1-1/8" raise, 3/8" drop — Inspire: 5/8" raise, 1/2" drop). Reserve and group raise limit apply uniformly across types. "Group raise limit" caps how much extra raise (beyond what an elevation would need on its own) it will accept to share an order height with others.</div>
+      <div class="hint" style="margin-top:6px;"><strong>Extended Base</strong> (Classic: +1-1/2", Inspire: +3/4") raises the frame's whole adjustable range by that amount — it doesn't change any of the raise/drop numbers above or the Frame Adjustment shown per elevation, it just sits the leveler higher to begin with, like stilts under the frame.</div>
+      <div class="settings-row" style="margin-top:10px;">
+        <span class="settings-title">Elevation Defaults</span>
+        ${stepperField("Datum", "globalDatum", levelerSettings.globalDatum)}
+        <div class="field">
+          <label>Leveler Type</label>
+          <select class="leveler-select" onchange="updateGlobalLevelerType(this.value)">
+            <option value="Classic" ${levelerSettings.globalLevelerType === "Classic" ? "selected" : ""}>Classic</option>
+            <option value="Inspire" ${levelerSettings.globalLevelerType === "Inspire" ? "selected" : ""}>Inspire</option>
+          </select>
+        </div>
+        <button onclick="applyGlobalDefaults()" title="Overwrites Datum and Leveler Type on every elevation with the values above — individual elevations can still be edited afterward.">Apply to All Elevations</button>
+      </div>
+      <div class="hint" style="margin-top:6px;">Sets the Datum and Leveler Type shown above as the starting point for new elevations, and (only when you click "Apply to All Elevations") overwrites those two fields on every existing elevation. Elevations can still be adjusted individually afterward — this doesn't lock them.</div>
     `;
   }
   function updateLeveler(field, value) {
@@ -433,24 +1311,54 @@
     levelerSettings[field] = Math.round(next * 16) / 16;
     render();
   }
+  function updateGlobalLevelerType(value) {
+    levelerSettings.globalLevelerType = value;
+  }
+  function nudgeSectionDisplay(sectionId, viewKey, field, delta, min, max) {
+    const section = planSections.find(s => s.id === sectionId);
+    if (!section) return;
+    if (!section[viewKey]) section[viewKey] = {};
+    const defaults = { lineThickness: 4, labelTextSize: 9, outlineWidth: 1 };
+    const current = section[viewKey][field] ?? defaults[field] ?? 0;
+    section[viewKey][field] = Math.max(min, Math.min(max, current + delta));
+    render();
+  }
+  function applyGlobalDefaults() {
+    if (elevations.length === 0) {
+      setStatus("No elevations to apply defaults to yet.", "error");
+      return;
+    }
+    elevations.forEach(e => {
+      e.datum = levelerSettings.globalDatum;
+      e.levelerType = levelerSettings.globalLevelerType;
+    });
+    render();
+    setStatus(`Applied Datum ${fractionDisplay(levelerSettings.globalDatum)}" and Leveler Type ${levelerSettings.globalLevelerType} to ${elevations.length} elevation${elevations.length === 1 ? "" : "s"}.`, "success");
+  }
 
   // ---- Group elevations onto the fewest possible order heights ----
   // Each elevation tolerates a WINDOW of order heights, bounded by how far the base can
   // raise (minus reserve) and drop (minus reserve). Greedy interval-point-cover picks the
   // fewest order heights that land inside every elevation's window.
   function computeGroups() {
-    const groupDropLimit = Math.max(0, levelerSettings.groupDropLimit);
+    const groupRaiseLimit = Math.max(0, levelerSettings.groupDropLimit);
     const windows = elevations.map((e, idx) => {
       const calc = computeElevation(e);
       const { raiseUse, dropUse } = leverageForElevation(e);
-      const groupDropUse = Math.min(dropUse, groupDropLimit);
-      // Carpet/tegular deductions shift the whole raise/drop window down before
-      // the leveler capacities are applied, same offset used in computeElevation().
-      const dedTotal = (e.carpetChecked ? CARPET_DEDUCTION : 0) + (e.ceilingChecked ? CEILING_DEDUCTION : 0);
-      const adjMax = calc.max - dedTotal;
-      const ohIdeal = calc.naturalHeight + raiseUse;
-      const low = Math.max(adjMax - dropUse, ohIdeal - groupDropUse);
-      return { idx, low, high: ohIdeal };
+      // For ANY position height H between naturalHeight (tightest) and maxDeducted (loosest)
+      // to be reachable from a given Order Height O: reaching the tallest position (max) means
+      // extending UP from O, so that needs RAISE — binding case O >= maxDeducted - raiseUse.
+      // Reaching the shortest position (natural height) means retracting DOWN from O, so that
+      // needs DROP — binding case O <= naturalHeight + dropUse. So raise sets the LOW bound
+      // (against max) and drop sets the HIGH bound (against natural height) — the reverse of
+      // what an earlier version of this code did, which silently let some elevations get
+      // assigned an order height requiring more drop (or raise) than their reserve actually
+      // allowed. "Group raise limit" caps how much of an elevation's own raise capacity it
+      // will spend just to fit into a shared group (vs. what it strictly needs on its own).
+      const groupRaiseUse = Math.min(raiseUse, groupRaiseLimit);
+      const high = calc.naturalHeight + dropUse;
+      const low = calc.maxDeducted - groupRaiseUse;
+      return { idx, low, high };
     });
     const sorted = [...windows].sort((a, b) => a.high - b.high);
     const assigned = new Set();
@@ -458,9 +1366,20 @@
     for (const w of sorted) {
       if (assigned.has(w.idx)) continue;
       const orderHeight = w.high;
-      const members = [];
+      // The anchor of a new group is always included in it — unconditionally, not via the
+      // low<=orderHeight<=high membership check below. That check can fail for the anchor
+      // itself when its own window is inverted (low > high, meaning current reserve/group
+      // limit settings make it genuinely infeasible to reach); before this fix, an elevation
+      // in that state silently vanished from every group (never assigned, and since its
+      // window was invalid, no other anchor could pick it up either), while the summary
+      // table quietly fell back to Group 1's order height for it via `?? 0` — showing wrong
+      // data instead of surfacing the infeasibility. Now it always lands somewhere, and if
+      // its window really was invalid, the Drop to Min / Raise to Max over-capacity flags
+      // in Project Order Summary will correctly show why.
+      const members = [w.idx];
+      assigned.add(w.idx);
       for (const w2 of windows) {
-        if (assigned.has(w2.idx)) continue;
+        if (w2.idx === w.idx || assigned.has(w2.idx)) continue;
         if (w2.low <= orderHeight && orderHeight <= w2.high) {
           members.push(w2.idx);
           assigned.add(w2.idx);
@@ -477,11 +1396,11 @@
   let projectMeta = { client: "", location: "", dirttPM: "", installSupervisor: "", contractor: "" };
 
   function renderProjectMeta() {
-    document.getElementById("metaClient").value = projectMeta.client || "";
-    document.getElementById("metaLocation").value = projectMeta.location || "";
-    document.getElementById("metaDirttPM").value = projectMeta.dirttPM || "";
-    document.getElementById("metaInstallSupervisor").value = projectMeta.installSupervisor || "";
-    document.getElementById("metaContractor").value = projectMeta.contractor || "";
+    document.getElementById("metaClient").textContent = projectMeta.client || "";
+    document.getElementById("metaLocation").textContent = projectMeta.location || "";
+    document.getElementById("metaDirttPM").textContent = projectMeta.dirttPM || "";
+    document.getElementById("metaInstallSupervisor").textContent = projectMeta.installSupervisor || "";
+    document.getElementById("metaContractor").textContent = projectMeta.contractor || "";
   }
 
   function updateProjectMeta(field, value) {
@@ -533,10 +1452,144 @@
   }
 
   // ---- Load field data from SharePoint via Power Automate flow ----
+  // Reads either the current single-photo shape (record.photo) or an older saved
+  // file's multi-photo shape (record.photos: [...]) and normalizes to one photo.
+  function pickSinglePhoto(record) {
+    if (record.photo && record.photo.thumbnail) {
+      return { id: record.photo.id, thumbnail: record.photo.thumbnail, filename: record.photo.filename || "" };
+    }
+    if (Array.isArray(record.photos) && record.photos.length && record.photos[0].thumbnail) {
+      const p = record.photos[0];
+      return { id: p.id, thumbnail: p.thumbnail, filename: p.filename || "" };
+    }
+    return null;
+  }
+
+  // Handles both the current multi-section shape (data.planSections + sectionId on each
+  // elevation/siteCondition) and older saved files that only had one flat planImageUrl —
+  // those get migrated into a single section wrapping everything.
+  function applyLoadedData(data) {
+    const hasSections = Array.isArray(data.planSections) && data.planSections.length > 0;
+    let migratedSectionId = null;
+
+    if (hasSections) {
+      planSections = data.planSections.map(s => ({
+        id: s.id || ("section-" + (nextLocalId++)),
+        title: s.title || "Plan",
+        planImageUrl: s.planImageUrl || "",
+        // planViewDisplay/mplanDisplay are the current shape; fall back to the old flat
+        // fields (lineThickness/labelTextSize/calloutOutlineColor/calloutOutlineWidth) for
+        // files saved before the two views' controls were split apart.
+        planViewDisplay: s.planViewDisplay || { lineThickness: s.lineThickness ?? 4, labelTextSize: s.labelTextSize ?? 9, outlineColor: "#000000", outlineWidth: 1 },
+        mplanDisplay: s.mplanDisplay || {
+          lineThickness: s.lineThickness ?? 4,
+          labelTextSize: s.labelTextSize ?? 9,
+          outlineColor: s.calloutOutlineColor || "#000000",
+          outlineWidth: s.calloutOutlineWidth ?? 1
+        }
+      }));
+    } else if (data.planImageUrl || (data.elevations && data.elevations.length) || (data.siteConditions && data.siteConditions.length)) {
+      migratedSectionId = "section-" + (nextLocalId++);
+      planSections = [{
+        id: migratedSectionId,
+        title: "Plan 1",
+        planImageUrl: data.planImageUrl || "",
+        planViewDisplay: { lineThickness: 4, labelTextSize: 9, outlineColor: "#000000", outlineWidth: 1 },
+        mplanDisplay: { lineThickness: 4, labelTextSize: 9, outlineColor: "#000000", outlineWidth: 1 }
+      }];
+    } else {
+      planSections = [];
+    }
+
+    elevations = (data.elevations || []).map(e => ({
+      id: e.id,
+      sectionId: e.sectionId || migratedSectionId || (planSections[0] && planSections[0].id) || null,
+      title: e.title || "Untitled Elevation",
+      datum: e.datum ?? 60,
+      carpetChecked: !!e.carpetChecked,
+      ceilingChecked: !!e.ceilingChecked,
+      bulkheadChecked: !!e.bulkheadChecked,
+      levelerType: e.levelerType || "Classic",
+      extendedBase: !!e.extendedBase,
+      width: e.width || "",
+      wallDeduction: e.wallDeduction || "N/A",
+      notes: e.notes || "",
+      photo: pickSinglePhoto(e),
+      labelFlip: !!e.labelFlip,
+      lineX1: e.lineX1 ?? null,
+      lineY1: e.lineY1 ?? null,
+      lineX2: e.lineX2 ?? null,
+      lineY2: e.lineY2 ?? null,
+      positions: (e.positions || []).map(p => ({
+        position: p.position,
+        variance: p.variance,
+        calculatedHeight: p.calculatedHeight
+      }))
+    }));
+    siteConditions = (data.siteConditions || []).map(sc => ({
+      id: sc.id,
+      sectionId: sc.sectionId || migratedSectionId || (planSections[0] && planSections[0].id) || null,
+      title: sc.title || "Site Condition",
+      notes: sc.notes || "",
+      pinX: sc.pinX ?? null,
+      pinY: sc.pinY ?? null,
+      leaderDir: sc.leaderDir || "ur",
+      photo: pickSinglePhoto(sc)
+    }));
+    planMarkups = (data.planMarkups || []).map(m => ({
+      id: m.id,
+      sectionId: m.sectionId || migratedSectionId || (planSections[0] && planSections[0].id) || null,
+      x: m.x,
+      y: m.y,
+      text: m.text || "",
+      w: m.w || null,
+      h: m.h || null
+    }));
+    projectMeta = {
+      client: data.client || "",
+      location: data.location || "",
+      dirttPM: data.dirttPM || "",
+      installSupervisor: data.installSupervisor || "",
+      contractor: data.contractor || ""
+    };
+    renderProjectMeta();
+
+    if (data.projectName) {
+      projectName = data.projectName;
+      const titleEl = document.getElementById("projectTitle");
+      if (titleEl) titleEl.textContent = projectName;
+    }
+
+    if (data.levelerSettings) {
+      levelerSettings = {
+        raiseReserve: data.levelerSettings.raiseReserve ?? levelerSettings.raiseReserve,
+        dropReserve: data.levelerSettings.dropReserve ?? levelerSettings.dropReserve,
+        groupDropLimit: data.levelerSettings.groupDropLimit ?? levelerSettings.groupDropLimit,
+        globalDatum: data.levelerSettings.globalDatum ?? levelerSettings.globalDatum,
+        globalLevelerType: data.levelerSettings.globalLevelerType || levelerSettings.globalLevelerType
+      };
+    }
+
+    // Advance nextLocalId past every id already in the loaded file, so newly added
+    // elevations/sections/photos never collide with an id that came from the save.
+    const allIds = [];
+    planSections.forEach(s => allIds.push(s.id));
+    elevations.forEach(e => { allIds.push(e.id); if (e.photo) allIds.push(e.photo.id); });
+    siteConditions.forEach(sc => { allIds.push(sc.id); if (sc.photo) allIds.push(sc.photo.id); });
+    planMarkups.forEach(m => allIds.push(m.id));
+    allIds.forEach(id => {
+      const m = typeof id === "string" && id.match(/-(\d+)$/);
+      if (m) nextLocalId = Math.max(nextLocalId, parseInt(m[1], 10) + 1);
+    });
+  }
+
   async function loadFieldData() {
     if (!LOAD_FLOW_URL || LOAD_FLOW_URL.indexOf("PASTE_") === 0) {
-      setStatus("Load flow not configured — add elevations manually below.", "error");
+      setStatus("Load flow not configured — use \"+ Add Plan Section\" below to start manually.", "error");
       elevations = [];
+      siteConditions = [];
+      planSections = [];
+      planMarkups = [];
       render();
       return;
     }
@@ -549,58 +1602,39 @@
       });
       if (!res.ok) throw new Error("Flow returned " + res.status);
       const data = await res.json();
-      planImageUrl = data.planImageUrl || "";
-      elevations = (data.elevations || []).map(e => ({
-        id: e.id,
-        title: e.title || "Untitled Elevation",
-        datum: e.datum ?? 60,
-        carpetChecked: !!e.carpetChecked,
-        ceilingChecked: !!e.ceilingChecked,
-        levelerType: e.levelerType || "Classic",
-        width: e.width || "",
-        wallDeduction: e.wallDeduction || "N/A",
-        markerX: e.markerX,
-        markerY: e.markerY,
-        positions: (e.positions || []).map(p => ({
-          position: p.position,
-          variance: p.variance,
-          calculatedHeight: p.calculatedHeight
-        }))
-      }));
-      projectMeta = {
-        client: data.client || "",
-        location: data.location || "",
-        dirttPM: data.dirttPM || "",
-        installSupervisor: data.installSupervisor || "",
-        contractor: data.contractor || ""
-      };
-      renderProjectMeta();
+      applyLoadedData(data);
       clearStatus();
       render();
     } catch (err) {
-      setStatus("Couldn't load field data (" + err.message + "). You can still add elevations manually.", "error");
+      setStatus("Couldn't load field data (" + err.message + "). You can still add plan sections manually.", "error");
       elevations = [];
+      siteConditions = [];
+      planSections = [];
+      planMarkups = [];
       render();
     }
   }
 
-  function refreshFromField() {
-    if (!confirm("Reload from field data? Any unsaved manual edits will be lost.")) return;
-    loadFieldData();
-  }
-
-  function addElevation() {
+  function addElevation(sectionId) {
     elevations.push({
       id: "local-" + (nextLocalId++),
+      sectionId,
       title: "New Elevation",
-      datum: 60,
-      levelerType: "Classic",
+      datum: levelerSettings.globalDatum,
+      levelerType: levelerSettings.globalLevelerType,
+      extendedBase: false,
       width: "",
       wallDeduction: "N/A",
       carpetChecked: false,
       ceilingChecked: false,
+      bulkheadChecked: false,
+      notes: "",
+      photo: null,
+      labelFlip: false,
       positions: [
-        { position: 1, variance: "", calculatedHeight: "" }
+        { position: 1, variance: "", calculatedHeight: "" },
+        { position: 2, variance: "", calculatedHeight: "" },
+        { position: 3, variance: "", calculatedHeight: "" }
       ]
     });
     render();
@@ -619,9 +1653,91 @@
   }
 
   function removeElevation(elevIdx) {
-    if (!confirm("Remove this elevation from the order?")) return;
-    elevations.splice(elevIdx, 1);
+    confirmRemoveIdx = elevIdx;
     render();
+  }
+
+  function confirmRemoveElevation(elevIdx) {
+    elevations.splice(elevIdx, 1);
+    confirmRemoveIdx = null;
+    if (markLineIdx === elevIdx) { markLineIdx = null; markStage = null; }
+    render();
+  }
+
+  function cancelRemoveElevation() {
+    confirmRemoveIdx = null;
+    render();
+  }
+
+  // ---- Site Conditions: flat records with a single pin, no grouping/positions ----
+  function addSiteCondition(sectionId) {
+    siteConditions.push({
+      id: "local-" + (nextLocalId++),
+      sectionId,
+      title: "New Site Condition",
+      notes: "",
+      pinX: null,
+      pinY: null,
+      leaderDir: "ur", // ur | ul | dr | dl — which way the label floats off its pin
+      photo: null
+    });
+    render();
+  }
+
+  function updateSiteCondition(idx, field, value) {
+    siteConditions[idx][field] = value;
+    render();
+  }
+
+  function removeSiteCondition(idx) {
+    confirmRemoveScIdx = idx;
+    render();
+  }
+
+  function confirmRemoveSiteCondition(idx) {
+    siteConditions.splice(idx, 1);
+    confirmRemoveScIdx = null;
+    if (markPinIdx === idx) markPinIdx = null;
+    render();
+  }
+
+  function cancelRemoveSiteCondition() {
+    confirmRemoveScIdx = null;
+    render();
+  }
+
+  // Returns the HTML for one section's site condition cards (empty string if none).
+  function renderSiteConditionsForSection(sectionId) {
+    const items = siteConditions.map((sc, idx) => ({ sc, idx })).filter(p => p.sc.sectionId === sectionId);
+    if (items.length === 0) return "";
+    return items.map(({ sc, idx }, i) => `
+      <div class="card-with-photo ${i === 0 ? "sc-group-start" : ""}" id="sc-card-${sc.id}">
+        <div class="elevation-card">
+          <div class="elev-header grouped" style="background:${siteConditionColor(idx)};">
+            <input class="elev-title" style="color:white;" value="${sc.title}" onchange="updateSiteCondition(${idx}, 'title', this.value)">
+            ${confirmRemoveScIdx === idx
+              ? `<span class="elev-mark-status">Remove this site condition?</span>
+                 <button class="subtle elev-remove" onclick="confirmRemoveSiteCondition(${idx})">Confirm</button>
+                 <button class="subtle" onclick="cancelRemoveSiteCondition()">Cancel</button>`
+              : `<button class="subtle elev-remove" onclick="removeSiteCondition(${idx})">Remove</button>`}
+          </div>
+          <div class="elev-mark-row">
+            <button onclick="startMarkPin(${idx})">${(sc.pinX != null) ? "Re-mark pin" : "Mark pin on plan"}</button>
+            ${(sc.pinX != null) ? `<button class="subtle" onclick="clearPin(${idx})">Clear pin</button>` : ""}
+            <span class="elev-mark-status">${(sc.pinX != null) ? "Pin placed" : "No pin marked"}</span>
+            ${(sc.pinX != null) ? `
+              <span class="elev-mark-status">Label:</span>
+              <button class="subtle leader-dir-btn ${(sc.leaderDir || 'ur') === 'ul' ? 'active' : ''}" title="Label up-left" onclick="updateSiteCondition(${idx}, 'leaderDir', 'ul')">↖</button>
+              <button class="subtle leader-dir-btn ${(sc.leaderDir || 'ur') === 'ur' ? 'active' : ''}" title="Label up-right" onclick="updateSiteCondition(${idx}, 'leaderDir', 'ur')">↗</button>
+              <button class="subtle leader-dir-btn ${(sc.leaderDir || 'ur') === 'dl' ? 'active' : ''}" title="Label down-left" onclick="updateSiteCondition(${idx}, 'leaderDir', 'dl')">↙</button>
+              <button class="subtle leader-dir-btn ${(sc.leaderDir || 'ur') === 'dr' ? 'active' : ''}" title="Label down-right" onclick="updateSiteCondition(${idx}, 'leaderDir', 'dr')">↘</button>
+            ` : ""}
+          </div>
+          <textarea class="sc-notes" placeholder="Notes…" onchange="updateSiteCondition(${idx}, 'notes', this.value)">${sc.notes || ""}</textarea>
+        </div>
+        ${photoBoxHtml("siteCondition", idx, sc.photo)}
+      </div>
+    `).join("");
   }
 
   // ---- Core calculation per elevation ----
@@ -635,6 +1751,7 @@
   // CEILING_DEDUCTION below if your standard deduction values differ.
   const CARPET_DEDUCTION = 0.25;
   const CEILING_DEDUCTION = 0.25;
+  const BULKHEAD_DEDUCTION = 0.75; // raw/undrywalled bulkhead — same mechanic as Carpet/Tegular
   const WALL_DEDUCTIONS = { "N/A": 0, "3/4": 0.75, "1-1/2": 1.5 };
 
   // Signed fraction display for Frame Adjustment, e.g. "+ 3/16"" (raise) or "− 1/2"" (drop).
@@ -668,27 +1785,23 @@
 
     const carpetDed = e.carpetChecked ? CARPET_DEDUCTION : 0;
     const ceilingDed = e.ceilingChecked ? CEILING_DEDUCTION : 0;
+    const bulkheadDed = e.bulkheadChecked ? BULKHEAD_DEDUCTION : 0;
+    const extShift = e.extendedBase ? (EXTENDED_BASE_SHIFT[e.levelerType] || EXTENDED_BASE_SHIFT.Classic) : 0;
 
-    const naturalHeight = (min !== null) ? (min - carpetDed - ceilingDed) : null;
+    const naturalHeight = (min !== null) ? (min - carpetDed - ceilingDed - bulkheadDed + extShift) : null;
+    const maxDeducted = (max !== null) ? (max - carpetDed - ceilingDed - bulkheadDed + extShift) : null;
 
-    return { heights, min, max, diff, naturalHeight };
+    return { heights, min, max, diff, naturalHeight, maxDeducted };
   }
 
   // ---- Render ----
-  function render() {
-    const container = document.getElementById("elevations");
-    if (elevations.length === 0) {
-      container.innerHTML = '<div class="empty-state">No elevations loaded. Use "Add elevation" to enter one manually, or "Refresh from field data" once the load flow is configured.</div>';
-      document.getElementById("summaryContainer").innerHTML = "";
-      return;
-    }
-
-    renderPlanView();
-    renderLevelerSettings();
-
+  // Returns the HTML for one section's elevation cards (empty string if none).
+  function renderElevationsForSection(sectionId) {
     const { elevToGroup, groups } = computeGroups();
+    const items = elevations.map((e, idx) => ({ e, idx })).filter(p => p.e.sectionId === sectionId);
+    if (items.length === 0) return "";
 
-    container.innerHTML = elevations.map((e, idx) => {
+    return items.map(({ e, idx }) => {
       const calc = computeElevation(e);
       const groupIdx = elevToGroup[idx] ?? 0;
       const color = groupColor(groupIdx);
@@ -705,87 +1818,178 @@
       `).join("");
 
       return `
-        <div class="elevation-card">
-          <div class="elev-header grouped" style="background:${color};">
-            <input class="elev-title" value="${e.title}" onchange="updateElevation(${idx}, 'title', this.value)">
-            <button class="subtle elev-remove" onclick="removeElevation(${idx})">Remove elevation</button>
-          </div>
-
-          <div class="field-row" style="border-top:none; padding-top:0; margin-bottom:10px;">
-            <div class="field">
-              <label>Datum</label>
-              <input type="number" step="0.0625" value="${e.datum}" onchange="updateElevation(${idx}, 'datum', this.value)">
-            </div>
-            <div class="field">
-              <label>Leveler Type</label>
-              <select class="leveler-select" onchange="updateElevation(${idx}, 'levelerType', this.value)">
-                <option value="Classic" ${(e.levelerType || "Classic") === "Classic" ? "selected" : ""}>Classic</option>
-                <option value="Inspire" ${e.levelerType === "Inspire" ? "selected" : ""}>Inspire</option>
-              </select>
-            </div>
-            <div class="field">
-              <label>Width (in.)</label>
-              <input type="text" value="${e.width ?? ''}" placeholder="e.g. 114" onchange="updateElevation(${idx}, 'width', this.value)">
-            </div>
-            <div class="field">
-              <label>Adjusted Width</label>
-              <input type="text" value="${decimalToFeetInches(parseHeightToDecimal(e.width) - (WALL_DEDUCTIONS[e.wallDeduction || 'N/A'] || 0))}" readonly style="background:#f5f6f8; color:var(--text-muted);">
-            </div>
-            <div class="field">
-              <label>Wall Deduction</label>
-              <select onchange="updateElevation(${idx}, 'wallDeduction', this.value)">
-                <option value="N/A" ${(e.wallDeduction || "N/A") === "N/A" ? "selected" : ""}>N/A</option>
-                <option value="3/4" ${e.wallDeduction === "3/4" ? "selected" : ""}>3/4</option>
-                <option value="1-1/2" ${e.wallDeduction === "1-1/2" ? "selected" : ""}>1-1/2</option>
-              </select>
-            </div>
-          </div>
-
-          <table class="positions">
-            <thead><tr><th>Position</th><th>Variance</th><th>Height</th><th></th></tr></thead>
-            <tbody>${rows}</tbody>
-          </table>
-          <button class="subtle" onclick="addPosition(${idx})" style="margin-bottom:12px;">+ Add position</button>
-
-          <div class="field-row">
-            <div class="field checkbox">
-              <input type="checkbox" ${e.carpetChecked ? "checked" : ""} onchange="updateElevation(${idx}, 'carpetChecked', this.checked)">
-              <label>Carpet Deduction (${CARPET_DEDUCTION}")</label>
-            </div>
-            <div class="field checkbox">
-              <input type="checkbox" ${e.ceilingChecked ? "checked" : ""} onchange="updateElevation(${idx}, 'ceilingChecked', this.checked)">
-              <label>Tegular Deduction (${CEILING_DEDUCTION}")</label>
-            </div>
-            <div class="field">
-              <label>Frame Adjustment</label>
-              <input type="text" value="${signedFraction(frameAdjustment)}" readonly
-                  title="How far the leveler raises or drops this elevation from its natural height to reach the group's order height"
-                  style="background:#f5f6f8; color:var(--text-muted);">
+        <div class="card-with-photo" id="elevation-card-${e.id}">
+          <div class="elevation-card">
+            <div class="elev-header grouped" style="background:${color};">
+              <input class="elev-title" value="${e.title}" onchange="updateElevation(${idx}, 'title', this.value)">
+              ${confirmRemoveIdx === idx
+                ? `<span class="elev-mark-status">Remove this elevation?</span>
+                   <button class="subtle elev-remove" onclick="confirmRemoveElevation(${idx})">Confirm</button>
+                   <button class="subtle" onclick="cancelRemoveElevation()">Cancel</button>`
+                : `<button class="subtle elev-remove" onclick="removeElevation(${idx})">Remove elevation</button>`}
             </div>
 
-            <div class="result-block">
-              <div class="result">
-                <span class="label">Min / Max</span>
-                <span class="value">${decimalToFraction(calc.min)} – ${decimalToFraction(calc.max)}</span>
+            <div class="elev-mark-row">
+              <button onclick="startMarkLine(${idx})">${(e.lineX1 != null && e.lineX2 != null) ? "Re-mark line" : "Mark line on plan"}</button>
+              ${(e.lineX1 != null || e.lineX2 != null) ? `<button class="subtle" onclick="clearLine(${idx})">Clear line</button>` : ""}
+              <span class="elev-mark-status">${(e.lineX1 != null && e.lineX2 != null) ? "Line placed" : "No line marked"}</span>
+              ${(e.lineX1 != null && e.lineX2 != null) ? `<button class="subtle" title="Swaps which side the width/height labels sit on, on the Measurement Plan" onclick="toggleLabelFlip(${idx})">${e.labelFlip ? "Un-flip label side" : "Flip label side"}</button>` : ""}
+            </div>
+
+            <div class="field-row" style="border-top:none; padding-top:0; margin-bottom:10px;">
+              <div class="field">
+                <label>Datum</label>
+                <div class="val-field" contenteditable="true" spellcheck="false" onblur="updateElevation(${idx}, 'datum', this.textContent)">${e.datum}</div>
               </div>
-              <div class="result">
-                <span class="label">Difference</span>
-                <span class="value">${decimalToFraction(calc.diff)}</span>
+              <div class="field">
+                <label>Leveler Type</label>
+                <select class="leveler-select" onchange="updateElevation(${idx}, 'levelerType', this.value)">
+                  <option value="Classic" ${(e.levelerType || "Classic") === "Classic" ? "selected" : ""}>Classic</option>
+                  <option value="Inspire" ${e.levelerType === "Inspire" ? "selected" : ""}>Inspire</option>
+                </select>
               </div>
-              <div class="result order">
-                <span class="label">Order Height</span>
-                <span class="value">${decimalToFraction(groupOH)}</span>
+              <div class="field">
+                <label>Width (in.)</label>
+                <div class="val-field" contenteditable="true" spellcheck="false" data-placeholder="e.g. 114" onblur="updateElevation(${idx}, 'width', this.textContent)">${e.width ?? ''}</div>
+              </div>
+              <div class="field">
+                <label>Adjusted Width</label>
+                <div class="val-field readonly">${decimalToFeetInches(parseHeightToDecimal(e.width) - (WALL_DEDUCTIONS[e.wallDeduction || 'N/A'] || 0))}</div>
+              </div>
+              <div class="field">
+                <label>Wall Deduction</label>
+                <select class="wall-ded-select" onchange="updateElevation(${idx}, 'wallDeduction', this.value)">
+                  <option value="N/A" ${(e.wallDeduction || "N/A") === "N/A" ? "selected" : ""}>N/A</option>
+                  <option value="3/4" ${e.wallDeduction === "3/4" ? "selected" : ""}>3/4</option>
+                  <option value="1-1/2" ${e.wallDeduction === "1-1/2" ? "selected" : ""}>1-1/2</option>
+                </select>
               </div>
             </div>
+
+            <table class="positions">
+              <thead><tr><th>Position</th><th>Variance</th><th>Height</th><th></th></tr></thead>
+              <tbody>${rows}</tbody>
+            </table>
+            <button class="subtle" onclick="addPosition(${idx})" style="margin-bottom:6px;">+ Add position</button>
+
+            <div class="field-row compact-row" style="align-items:flex-start; border-top:none; padding-top:0;">
+              <div class="field checkbox ${e.carpetChecked ? "" : "print-hide"}">
+                <input type="checkbox" ${e.carpetChecked ? "checked" : ""} onchange="updateElevation(${idx}, 'carpetChecked', this.checked)">
+                <label title="Carpet Deduction">Carpet (${CARPET_DEDUCTION}")</label>
+              </div>
+              <div class="field checkbox ${e.ceilingChecked ? "" : "print-hide"}">
+                <input type="checkbox" ${e.ceilingChecked ? "checked" : ""} onchange="updateElevation(${idx}, 'ceilingChecked', this.checked)">
+                <label title="Tegular Deduction">Tegular (${CEILING_DEDUCTION}")</label>
+              </div>
+              <div class="field checkbox ${e.bulkheadChecked ? "" : "print-hide"}">
+                <input type="checkbox" ${e.bulkheadChecked ? "checked" : ""} onchange="updateElevation(${idx}, 'bulkheadChecked', this.checked)">
+                <label title="Bulkhead Deduction — raw/undrywalled bulkhead condition at the datum line, deducts the same way Carpet/Tegular do">Bulkhead (${BULKHEAD_DEDUCTION}")</label>
+              </div>
+              <div class="field checkbox ${e.extendedBase ? "" : "print-hide"}">
+                <input type="checkbox" ${e.extendedBase ? "checked" : ""} onchange="updateElevation(${idx}, 'extendedBase', this.checked)">
+                <label title="Longer hardware (Classic: Extended Drive Collar, +1-1/2&quot; — Inspire: extended leveler stud, +3/4&quot;) that shifts the whole adjustable range higher. Same raise/drop capacity, just from a taller baseline — essentially stilts the frame, doesn't change the adjustment numbers.">Extended Base</label>
+              </div>
+              <div class="field" style="flex-direction:row; align-items:center; gap:6px;">
+                <label title="Frame Adjustment" style="white-space:nowrap;">Frame Adj.</label>
+                <div class="val-field readonly" title="How far the leveler raises or drops this elevation from its natural height to reach the group's order height">${signedFraction(frameAdjustment)}</div>
+              </div>
+              <div class="field">
+                <label>&nbsp;</label>
+                ${openNotesIds.has(e.id)
+                  ? `<button class="subtle" onclick="toggleElevationNotes(${idx})">Hide notes</button>`
+                  : `<button class="subtle" onclick="toggleElevationNotes(${idx})">${e.notes ? "Show notes" : "Add notes"}</button>`}
+              </div>
+            </div>
+
+            <div class="field-row" style="border-top:none; padding-top:0; margin-top:10px;">
+              <div class="result-block">
+                <div class="result">
+                  <span class="label">Min / Max</span>
+                  <span class="value">${decimalToFraction(calc.min)} – ${decimalToFraction(calc.max)}</span>
+                </div>
+                <div class="result">
+                  <span class="label">Difference</span>
+                  <span class="value">${decimalToFraction(calc.diff)}</span>
+                </div>
+                <div class="result order">
+                  <span class="label">Order Height</span>
+                  <span class="value">${decimalToFraction(groupOH)}</span>
+                </div>
+              </div>
+            </div>
+            ${openNotesIds.has(e.id) ? `<textarea class="sc-notes" placeholder="Notes…" onchange="updateElevation(${idx}, 'notes', this.value)">${e.notes || ""}</textarea>` : ""}
           </div>
+          ${photoBoxHtml("elevation", idx, e.photo)}
+        </div>
+      `;
+    }).join("");
+  }
+
+  // ---- Plan sections: each holds its own plan image, elevations, and site conditions ----
+  function renderPlanSections() {
+    const container = document.getElementById("planSectionsContainer");
+
+    const sectionsHtml = planSections.map(section => {
+      const elevHtml = renderElevationsForSection(section.id);
+      const scHtml = renderSiteConditionsForSection(section.id);
+      const bodyHtml = (elevHtml || scHtml)
+        ? (elevHtml + scHtml)
+        : '<div class="empty-state">No elevations or site conditions in this plan section yet.</div>';
+
+      return `
+        <div class="plan-section" id="plan-section-${section.id}">
+          <div class="plan-section-header">
+            <input class="plan-section-title" value="${section.title}" onchange="updatePlanSectionTitle('${section.id}', this.value)">
+            ${confirmRemoveSectionId === section.id
+              ? `<span class="elev-mark-status">Remove this plan section and everything in it?</span>
+                 <button class="subtle elev-remove" onclick="confirmRemovePlanSection('${section.id}')">Confirm</button>
+                 <button class="subtle" onclick="cancelRemovePlanSection()">Cancel</button>`
+              : `<button class="subtle elev-remove" onclick="removePlanSection('${section.id}')">Remove plan section</button>`}
+          </div>
+          <div class="summary-card">
+            ${renderSectionPlanView(section)}
+            <div class="plan-section-sub-actions">
+              <input type="file" id="replan-${section.id}" accept="image/*,application/pdf" style="display:none;" onchange="replacePlanImage('${section.id}', this.files[0]); this.value='';">
+              <button onclick="document.getElementById('replan-${section.id}').click()">${section.planImageUrl ? "Replace Plan" : "Upload Plan"}</button>
+              ${planDisplayControlsHtml(section, "planViewDisplay")}
+            </div>
+          </div>
+          <div class="plan-section-sub-actions">
+            <button onclick="addElevation('${section.id}')">+ Add elevation</button>
+            <button onclick="addSiteCondition('${section.id}')">+ Add site condition</button>
+          </div>
+          ${bodyHtml}
+          ${renderMeasurementPlanView(section)}
         </div>
       `;
     }).join("");
 
+    const emptyState = planSections.length === 0
+      ? '<div class="empty-state">No plan sections yet. Use "+ Add Plan Section" below to upload a plan (image or PDF) and start adding elevations and site conditions.</div>'
+      : "";
+
+    container.innerHTML = `
+      ${sectionsHtml}
+      ${emptyState}
+      <div class="add-plan-section-row">
+        <input type="file" id="newPlanSectionInput" accept="image/*,application/pdf" style="display:none;" onchange="addPlanSectionFromFile(this.files[0]); this.value='';">
+        <button class="primary" onclick="document.getElementById('newPlanSectionInput').click()">+ Add Plan Section</button>
+      </div>
+    `;
+  }
+
+  // ---- Render ----
+  function render() {
+    renderPlanSections();
+    renderLevelerSettings();
     renderSummary();
   }
 
   function renderSummary() {
+    if (elevations.length === 0) {
+      document.getElementById("summaryContainer").innerHTML = "";
+      return;
+    }
     const { groups, elevToGroup } = computeGroups();
 
     const rows = elevations.map((e, idx) => {
@@ -793,8 +1997,30 @@
       const color = groupColor(elevToGroup[idx] ?? 0);
       const groupOH = groups[elevToGroup[idx] ?? 0].orderHeight;
       const adjWidth = decimalToFeetInches(parseHeightToDecimal(e.width) - (WALL_DEDUCTIONS[e.wallDeduction || "N/A"] || 0));
-      return `<tr><td><span class="group-swatch" style="background:${color};"></span>${e.title}</td><td class="num">${adjWidth}</td><td class="num">${decimalToFraction(calc.min)}</td><td class="num">${decimalToFraction(groupOH)}</td><td class="num">${decimalToFraction(calc.max)}</td></tr>`;
+      const extTag = e.extendedBase
+        ? ` <span class="ext-base-tag" title="Uses Extended Base hardware (Classic: Extended Drive Collar / Inspire: extended leveler stud) — remember to order Extended Base Trim for this elevation.">Extended Base</span>`
+        : "";
+      // Signed change from Order Height to Min/Max, matching how a person reads the column:
+      // Drop to Min = Min − Order Height (negative = an actual drop of that amount; positive
+      // would mean Order Height is already below Min, which would need a RAISE to reach it —
+      // an unusual/reversed case). Raise to Max = Max − Order Height (positive = an actual
+      // raise; negative means Order Height is already above Max, needing a DROP to reach it).
+      // The over-capacity check follows whichever direction is actually required in each case,
+      // not just the usual one, so it stays correct even in the reversed scenarios above.
+      const { raiseUse, dropUse } = leverageForElevation(e);
+      const dropToMin = calc.naturalHeight - groupOH;
+      const raiseToMax = calc.maxDeducted - groupOH;
+      const dropOver = dropToMin < 0 ? (-dropToMin > dropUse + 1e-9) : (dropToMin > raiseUse + 1e-9);
+      const raiseOver = raiseToMax > 0 ? (raiseToMax > raiseUse + 1e-9) : (-raiseToMax > dropUse + 1e-9);
+      const dropCell = `<td class="num${dropOver ? " over-capacity" : ""}" title="${dropOver ? `Exceeds this elevation's usable ${dropToMin < 0 ? "drop" : "raise"} capacity` : `Usable drop: ${decimalToFraction(dropUse)}" — usable raise: ${decimalToFraction(raiseUse)}"`}">${signedFraction(dropToMin)}${dropOver ? " ⚠" : ""}</td>`;
+      const raiseCell = `<td class="num${raiseOver ? " over-capacity" : ""}" title="${raiseOver ? `Exceeds this elevation's usable ${raiseToMax > 0 ? "raise" : "drop"} capacity` : `Usable raise: ${decimalToFraction(raiseUse)}" — usable drop: ${decimalToFraction(dropUse)}"`}">${signedFraction(raiseToMax)}${raiseOver ? " ⚠" : ""}</td>`;
+      return `<tr><td><span class="group-swatch" style="background:${color};"></span>${e.title}${extTag}</td><td class="num">${adjWidth}</td><td class="num">${decimalToFraction(calc.naturalHeight)}</td>${dropCell}<td class="num">${decimalToFraction(groupOH)}</td>${raiseCell}<td class="num">${decimalToFraction(calc.maxDeducted)}</td></tr>`;
     }).join("");
+
+    const extendedElevs = elevations.filter(e => e.extendedBase);
+    const extendedNote = extendedElevs.length
+      ? `<div class="ext-base-note"><strong>⚠ Extended Base:</strong> ${extendedElevs.map(e => e.title).join(", ")} ${extendedElevs.length === 1 ? "uses" : "use"} Extended Base hardware — remember to order Extended Base Trim for ${extendedElevs.length === 1 ? "this elevation" : "these elevations"}.</div>`
+      : "";
 
     const groupRows = groups.map((g, gIdx) => {
       const names = g.members.map(m => elevations[m].title).join(", ");
@@ -802,19 +2028,19 @@
     }).join("");
 
     const allCalcs = elevations.map(computeElevation);
-    const projMin = Math.min(...allCalcs.map(c => c.min));
-    const projMax = Math.max(...allCalcs.map(c => c.max));
+    const projMin = Math.min(...allCalcs.map(c => c.naturalHeight));
+    const projMax = Math.max(...allCalcs.map(c => c.maxDeducted));
 
     const groupRangeRows = groups.map((g, gIdx) => {
       const memberCalcs = g.members.map(m => allCalcs[m]);
-      const gMin = Math.min(...memberCalcs.map(c => c.min));
-      const gMax = Math.max(...memberCalcs.map(c => c.max));
+      const gMin = Math.min(...memberCalcs.map(c => c.naturalHeight));
+      const gMax = Math.max(...memberCalcs.map(c => c.maxDeducted));
       return `<tr><td><span class="group-swatch" style="background:${groupColor(gIdx)};"></span>Group ${gIdx + 1}</td><td class="num">${decimalToFraction(gMin)}</td><td class="num">${decimalToFraction(gMax)}</td><td class="num">${decimalToFraction(gMax - gMin)}</td></tr>`;
     }).join("");
 
     document.getElementById("summaryContainer").innerHTML = `
       <div class="summary-card">
-        <h2>Order Height Groups — ${groups.length} of ${elevations.length} elevations</h2>
+        <h2>Order Height Groups — ${groups.length} with ${elevations.length} elevations</h2>
         <table class="summary">
           <thead><tr><th>Group</th><th>Order Height</th><th>Elevations</th></tr></thead>
           <tbody>${groupRows}</tbody>
@@ -823,9 +2049,10 @@
       <div class="summary-card">
         <h2>Project Order Summary — ${projectName}</h2>
         <table class="summary">
-          <thead><tr><th>Elevation</th><th style="text-align:right">Width</th><th style="text-align:right">Min</th><th style="text-align:right">Order Height</th><th style="text-align:right">Max</th></tr></thead>
+          <thead><tr><th>Elevation</th><th style="text-align:right">Width</th><th style="text-align:right">Min</th><th style="text-align:right" title="How much this elevation must drop from Order Height to reach Min — flagged if it exceeds usable drop capacity">Drop to Min</th><th style="text-align:right">Order Height</th><th style="text-align:right" title="How much this elevation must raise from Order Height to reach Max — flagged if it exceeds usable raise capacity">Raise to Max</th><th style="text-align:right" title="Max height minus carpet/tegular deductions">Max</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
+        ${extendedNote}
       </div>
       <div class="summary-card">
         <h2>Frame Range Across All Elevations</h2>
@@ -844,10 +2071,10 @@
     elevations[idx][field] = value;
     render();
   }
-  function nudgeElevation(idx, field, delta) {
-    const current = parseHeightToDecimal(elevations[idx][field]) || 0;
-    const next = Math.max(0, current + delta);
-    elevations[idx][field] = fractionDisplay(Math.round(next * 16) / 16);
+  function toggleElevationNotes(idx) {
+    const id = elevations[idx].id;
+    if (openNotesIds.has(id)) openNotesIds.delete(id);
+    else openNotesIds.add(id);
     render();
   }
   function updatePosition(elevIdx, posIdx, field, value) {
@@ -855,31 +2082,53 @@
     render();
   }
 
-  // ---- Save to SharePoint via Power Automate flow ----
-  async function saveOrder() {
-    if (!SAVE_FLOW_URL || SAVE_FLOW_URL.indexOf("PASTE_") === 0) {
-      setStatus("Save flow not configured yet.", "error");
-      return;
-    }
-    setStatus("Saving…", "loading");
+  // ---- Payload shared by "Save to JSON" (local WIP file) and "Save to SharePoint" ----
+  function buildPayload() {
     const { elevToGroup, groups } = computeGroups();
-    const payload = {
+    return {
       projectId,
       projectName,
       generatedAt: new Date().toISOString(),
+      planSections: planSections.map(s => ({
+        id: s.id,
+        title: s.title,
+        planImageUrl: s.planImageUrl || "",
+        planViewDisplay: {
+          lineThickness: (s.planViewDisplay && s.planViewDisplay.lineThickness) ?? 4,
+          labelTextSize: (s.planViewDisplay && s.planViewDisplay.labelTextSize) ?? 9,
+          outlineColor: (s.planViewDisplay && s.planViewDisplay.outlineColor) || "#000000",
+          outlineWidth: (s.planViewDisplay && s.planViewDisplay.outlineWidth) ?? 1
+        },
+        mplanDisplay: {
+          lineThickness: (s.mplanDisplay && s.mplanDisplay.lineThickness) ?? 4,
+          labelTextSize: (s.mplanDisplay && s.mplanDisplay.labelTextSize) ?? 9,
+          outlineColor: (s.mplanDisplay && s.mplanDisplay.outlineColor) || "#000000",
+          outlineWidth: (s.mplanDisplay && s.mplanDisplay.outlineWidth) ?? 1
+        }
+      })),
       elevations: elevations.map((e, idx) => {
         const calc = computeElevation(e);
         const groupOH = groups[elevToGroup[idx] ?? 0].orderHeight;
         const frameAdjustment = (groupOH !== null && calc.naturalHeight !== null) ? (groupOH - calc.naturalHeight) : null;
         return {
           id: e.id,
+          sectionId: e.sectionId,
           title: e.title,
           datum: e.datum,
           levelerType: e.levelerType || "Classic",
+          extendedBase: !!e.extendedBase,
           width: e.width || "",
           wallDeduction: e.wallDeduction || "N/A",
           carpetChecked: e.carpetChecked,
           ceilingChecked: e.ceilingChecked,
+          bulkheadChecked: !!e.bulkheadChecked,
+          notes: e.notes || "",
+          photo: e.photo ? { id: e.photo.id, thumbnail: e.photo.thumbnail, filename: e.photo.filename || "" } : null,
+          labelFlip: !!e.labelFlip,
+          lineX1: e.lineX1 ?? null,
+          lineY1: e.lineY1 ?? null,
+          lineX2: e.lineX2 ?? null,
+          lineY2: e.lineY2 ?? null,
           min: calc.min,
           max: calc.max,
           diff: calc.diff,
@@ -890,8 +2139,105 @@
           frameAdjustmentFraction: signedFraction(frameAdjustment),
           positions: e.positions
         };
-      })
+      }),
+      siteConditions: siteConditions.map(sc => ({
+        id: sc.id,
+        sectionId: sc.sectionId,
+        title: sc.title,
+        notes: sc.notes || "",
+        pinX: sc.pinX ?? null,
+        pinY: sc.pinY ?? null,
+        leaderDir: sc.leaderDir || "ur",
+        photo: sc.photo ? { id: sc.photo.id, thumbnail: sc.photo.thumbnail, filename: sc.photo.filename || "" } : null
+      })),
+      planMarkups: planMarkups.map(m => ({ id: m.id, sectionId: m.sectionId, x: m.x, y: m.y, text: m.text || "", w: m.w || null, h: m.h || null })),
+      client: projectMeta.client || "",
+      location: projectMeta.location || "",
+      dirttPM: projectMeta.dirttPM || "",
+      installSupervisor: projectMeta.installSupervisor || "",
+      contractor: projectMeta.contractor || "",
+      levelerSettings: {
+        raiseReserve: levelerSettings.raiseReserve,
+        dropReserve: levelerSettings.dropReserve,
+        groupDropLimit: levelerSettings.groupDropLimit,
+        globalDatum: levelerSettings.globalDatum,
+        globalLevelerType: levelerSettings.globalLevelerType
+      }
     };
+  }
+
+  // ---- Save to JSON: downloads the current WIP as a local file — no network call, no
+  // SharePoint dependency. Reload later via "Load from JSON" to keep working, then use
+  // "Save to SharePoint" whenever the order is ready to submit. Uses the browser's native
+  // Save As dialog (File System Access API) where available, so the person picks the name
+  // and location directly; falls back to a straight download in browsers that don't support
+  // it (Firefox, Safari). ----
+  function saveToJson() {
+    const payload = buildPayload();
+    const name = defaultJsonFileName();
+    if ("showSaveFilePicker" in window) {
+      (async () => {
+        try {
+          const handle = await window.showSaveFilePicker({
+            suggestedName: name,
+            types: [{ description: "JSON Files", accept: { "application/json": [".json"] } }]
+          });
+          const writable = await handle.createWritable();
+          await writable.write(JSON.stringify(payload, null, 2));
+          await writable.close();
+          setStatus(`Saved WIP to "${handle.name}".`, "success");
+        } catch (err) {
+          if (err.name !== "AbortError") {
+            setStatus("Save failed: " + err.message, "error");
+          }
+        }
+      })();
+    } else {
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setStatus(`Saved WIP to "${name}".`, "success");
+    }
+  }
+
+  function defaultJsonFileName() {
+    const safeName = (projectName || "FrameOrder").replace(/[^a-z0-9]+/gi, "_");
+    return `${safeName}_FrameOrder_${new Date().toISOString().slice(0,10)}.json`;
+  }
+
+  function loadFromJson(file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function() {
+      try {
+        const data = JSON.parse(reader.result);
+        applyLoadedData(data);
+        clearStatus();
+        render();
+      } catch (err) {
+        setStatus("Couldn't read that JSON file: " + err.message, "error");
+      }
+    };
+    reader.onerror = function() {
+      setStatus("Couldn't read that file.", "error");
+    };
+    reader.readAsText(file);
+  }
+
+  // ---- Save to SharePoint via Power Automate flow ----
+  async function saveOrder() {
+    if (!SAVE_FLOW_URL || SAVE_FLOW_URL.indexOf("PASTE_") === 0) {
+      setStatus("Save flow not configured yet.", "error");
+      return;
+    }
+    setStatus("Saving…", "loading");
+    const payload = buildPayload();
     try {
       const res = await fetch(SAVE_FLOW_URL, {
         method: "POST",
