@@ -109,7 +109,7 @@
   }
   table.positions tr:last-child td { border-bottom: none; }
   table.positions th { color: var(--text-muted); font-weight: 500; font-size: 12px; }
-  table.positions input {
+  table.positions input[type="text"] {
     width: 64px;
     text-align: center;
     font-family: var(--mono);
@@ -117,7 +117,9 @@
     border-radius: 4px;
     padding: 4px;
   }
+  table.positions input[type="checkbox"] { width: 16px; height: 16px; }
   .calc-height { font-family: var(--mono); color: var(--text-muted); }
+  .collar-cell { white-space: nowrap; text-align: center; }
 
   .field-row {
     display: flex;
@@ -167,12 +169,14 @@
   .result-block {
     margin-left: auto;
     display: flex;
-    gap: 24px;
+    flex-wrap: wrap;
+    row-gap: 8px;
+    gap: 14px;
   }
-  .result { display: flex; flex-direction: column; align-items: center; text-align: center; }
-  .result .label { font-size: 10px; color: var(--text-muted); }
-  .result .value { font-family: var(--mono); font-size: 13px; font-weight: 600; }
-  .result.order .value { color: var(--accent); font-size: 15px; }
+  .result { display: flex; flex-direction: column; align-items: center; text-align: center; white-space: nowrap; }
+  .result .label { font-size: 9px; color: var(--text-muted); white-space: nowrap; }
+  .result .value { font-family: var(--mono); font-size: 11.5px; font-weight: 600; white-space: nowrap; }
+  .result.order .value { color: var(--accent); font-size: 13px; }
 
   .summary-card {
     background: var(--card);
@@ -185,10 +189,15 @@
   table.summary { width: 100%; border-collapse: collapse; font-size: 13px; }
   table.summary th, table.summary td {
     padding: 6px 10px;
-    text-align: left;
+    text-align: center;
     border-bottom: 1px solid var(--border);
+    border-right: 1px solid var(--border);
   }
-  table.summary td.num { font-family: var(--mono); text-align: right; }
+  table.summary th:last-child, table.summary td:last-child { border-right: none; }
+  table.summary th.label, table.summary td.label { text-align: left; }
+  table.summary .group-label { white-space: nowrap; width: 1%; }
+  table.summary .elev-name-chip { white-space: nowrap; display: inline-block; }
+  table.summary td.num, table.summary th.num { font-family: var(--mono); text-align: center; white-space: nowrap; }
 
   .empty-state {
     text-align: center;
@@ -227,27 +236,22 @@
     vertical-align: middle;
     border: 1px solid rgba(0,0,0,0.15);
   }
-  .ext-base-tag {
+  .collar-star {
     display: inline-block;
-    font-size: 10px;
     font-weight: 700;
-    color: #9a3412;
-    background: #ffedd5;
-    border: 1px solid #fb923c;
-    border-radius: 3px;
-    padding: 1px 6px;
-    margin-left: 6px;
+    color: #ea580c;
+    margin-left: 3px;
     vertical-align: middle;
   }
-  .ext-base-note {
-    margin-top: 12px;
-    padding: 10px 14px;
+  .summary-note-row {
+    padding: 6px 14px;
     background: #fff7ed;
     border: 1px solid #fb923c;
     border-radius: 6px;
     font-size: 12.5px;
     color: #7c2d12;
   }
+  .summary-note-row + .summary-note-row { margin-top: 6px; }
   td.over-capacity {
     color: #b91c1c;
     font-weight: 700;
@@ -410,6 +414,7 @@
   .plan-marker-label.label-pin.dir-ul { transform: translate(-100%, -100%); margin-top: -3px; margin-left: -3px; }
   .plan-marker-label.label-pin.dir-dr { transform: translate(0, 0); margin-top: 3px; margin-left: 3px; }
   .plan-marker-label.label-pin.dir-dl { transform: translate(-100%, 0); margin-top: 3px; margin-left: -3px; }
+  .plan-marker-label.label-pin { pointer-events: auto; cursor: move; user-select: none; }
   .plan-view.marking { cursor: crosshair; }
   .mplan-datum-box {
     position: absolute;
@@ -423,12 +428,12 @@
     padding: 2px 6px;
     border-radius: 4px;
     white-space: nowrap;
-    pointer-events: none;
+    cursor: move;
+    user-select: none;
     z-index: 2;
   }
   .mplan-width-label {
     position: absolute;
-    color: #b91c1c;
     font-family: var(--mono);
     font-size: 9px;
     font-weight: 700;
@@ -436,7 +441,8 @@
     padding: 1px 3px;
     border-radius: 3px;
     white-space: nowrap;
-    pointer-events: none;
+    cursor: move;
+    user-select: none;
   }
   .mplan-width-label.orient-h { transform: translate(-50%, 0); margin-top: 8px; }
   .mplan-width-label.orient-v { transform: translate(6px, -50%); }
@@ -445,7 +451,6 @@
   .mplan-height-label {
     position: absolute;
     transform: translate(-50%, -50%);
-    color: #1d4ed8;
     font-family: var(--mono);
     font-size: 8px;
     font-weight: 700;
@@ -453,7 +458,8 @@
     padding: 0 2px;
     border-radius: 2px;
     white-space: nowrap;
-    pointer-events: none;
+    cursor: move;
+    user-select: none;
   }
   .mplan-view { position: relative; width: 100%; border-radius: 8px; overflow: hidden; }
   .mplan-view img { width: 100%; height: auto; display: block; }
@@ -469,14 +475,13 @@
     color: #713f12;
     font-family: var(--mono);
     font-size: 10px;
-    padding: 3px 16px 3px 5px;
+    padding: 3px 16px 3px 16px;
     border-radius: 3px;
+    display: inline-block;
     min-width: 16px;
     min-height: 14px;
     max-width: 320px;
     max-height: 240px;
-    width: 90px;
-    height: 40px;
     white-space: normal;
     word-break: break-word;
     resize: both;
@@ -484,6 +489,23 @@
   }
   .mplan-markup:empty:before { content: "Type note…"; color: #a68a3a; }
   .mplan-markup:focus { outline: 1.5px solid #ca8a04; outline-offset: 1px; }
+  .mplan-markup-handle {
+    position: absolute;
+    top: 1px;
+    left: 1px;
+    width: 14px;
+    height: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    font-size: 10px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.15);
+    color: #713f12;
+    cursor: move;
+    user-select: none;
+  }
   .mplan-markup-remove {
     position: absolute;
     top: 1px;
@@ -551,6 +573,8 @@
     .sc-notes { border: none !important; resize: none !important; padding: 2px 0 !important; background: transparent !important; min-height: 0 !important; }
     .elev-mark-row { display: none !important; }
     .print-hide { display: none !important; }
+    .mplan-markup-handle { display: none !important; }
+    .draggable-item { cursor: default !important; }
     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
     /* Keep the photo box from crowding the card's field row into wrapping on export */
     .photo-box { flex: 0 0 160px !important; width: 160px !important; height: 160px !important; }
@@ -661,7 +685,7 @@
     render();
   }
 
-  let elevations = []; // { id, sectionId, title, datum, carpetChecked, ceilingChecked, lineX1, lineY1, lineX2, lineY2, positions: [{position, variance, calculatedHeight}] } — Frame Adjustment is computed, not stored
+  let elevations = []; // { id, sectionId, title, datum, carpetChecked, ceilingChecked, lineX1, lineY1, lineX2, lineY2, positions: [{position, variance, calculatedHeight, extCollar}] } — Frame Adjustment is computed, not stored; extCollar is per-position (extended drive collar), not per-elevation
   let siteConditions = []; // { id, sectionId, title, notes, pinX, pinY } — plain flat records, no grouping/positions
   let planSections = []; // { id, title, planImageUrl } — each holds its own plan image; elevations/siteConditions reference one via sectionId
   let planMarkups = []; // { id, sectionId, x, y, text } — free-text notes dropped on the Measurement Plan view
@@ -688,10 +712,11 @@
     Classic: { raiseCapacity: 1.125, dropCapacity: 0.375 },
     Inspire: { raiseCapacity: 0.625, dropCapacity: 0.5 }
   };
-  // Extended Base swaps in longer hardware (Classic: Extended Drive Collar; Inspire: extended
-  // leveler stud) that shifts the whole adjustable range higher — same raise/drop capacity,
-  // just starting from a taller baseline. Applied as a shift to natural height, not to
-  // raiseCapacity/dropCapacity.
+  // Extended drive collars (Classic: Extended Drive Collar; Inspire: extended leveler stud)
+  // swap in longer hardware at an individual POSITION — not the whole elevation. A collared
+  // position's actual height is raised by this fixed amount (per the elevation's Leveler
+  // Type) before Min/Max/naturalHeight/maxDeducted are computed, since collars physically
+  // change what that position measures at. Raise/drop CAPACITY is unaffected either way.
   const EXTENDED_BASE_SHIFT = { Classic: 1.5, Inspire: 0.75 };
   let levelerSettings = { raiseReserve: 0, dropReserve: 0.125, groupDropLimit: 0.375, globalDatum: 60, globalLevelerType: "Classic" };
   // (line thickness / label text size live per-section on planSections now, not globally)
@@ -846,6 +871,151 @@
     planMarkups = planMarkups.filter(m => m.id !== id);
     render();
   }
+
+  // ---- Generic drag-to-move for Measurement Plan items (markups + auto-placed
+  // width/height/datum labels). All Measurement Plan positions are % coordinates relative
+  // to the plan <img>, so drag deltas are measured against that image's bounding rect (same
+  // reference handleMeasurementPlanClick already uses for placing new markups) and converted
+  // to percentage points. Dragging manipulates the element's inline style directly during the
+  // move (cheap, no re-render mid-drag, matches how markup resize already works via native
+  // CSS resize + captureMarkupSize on mouseup) and only commits to the data model — via the
+  // caller-supplied onCommit(newLeftPct, newTopPct) — on mouseup, which is what triggers the
+  // actual render(). Holding Shift while dragging locks movement to whichever axis (x or y)
+  // has moved further so far, letting the item slide only horizontally or only vertically.
+  let planDrag = null;
+  function startPlanItemDrag(evt, startLeftPct, startTopPct, onCommit) {
+    evt.preventDefault();
+    evt.stopPropagation();
+    const view = evt.currentTarget.closest(".mplan-view, .plan-view");
+    const img = view && view.querySelector("img");
+    if (!img) return;
+    const rect = img.getBoundingClientRect();
+    planDrag = {
+      el: evt.currentTarget, rect,
+      startClientX: evt.clientX, startClientY: evt.clientY,
+      startLeftPct, startTopPct,
+      lastLeftPct: startLeftPct, lastTopPct: startTopPct,
+      onCommit
+    };
+    document.addEventListener("mousemove", handlePlanItemDragMove);
+    document.addEventListener("mouseup", handlePlanItemDragEnd);
+  }
+  function handlePlanItemDragMove(evt) {
+    if (!planDrag) return;
+    const { el, rect, startClientX, startClientY, startLeftPct, startTopPct } = planDrag;
+    let dxPct = ((evt.clientX - startClientX) / rect.width) * 100;
+    let dyPct = ((evt.clientY - startClientY) / rect.height) * 100;
+    if (evt.shiftKey) {
+      if (Math.abs(dxPct) > Math.abs(dyPct)) dyPct = 0; else dxPct = 0;
+    }
+    const newLeft = startLeftPct + dxPct;
+    const newTop = startTopPct + dyPct;
+    el.style.left = newLeft + "%";
+    el.style.top = newTop + "%";
+    planDrag.lastLeftPct = newLeft;
+    planDrag.lastTopPct = newTop;
+  }
+  function handlePlanItemDragEnd() {
+    if (!planDrag) return;
+    document.removeEventListener("mousemove", handlePlanItemDragMove);
+    document.removeEventListener("mouseup", handlePlanItemDragEnd);
+    const { lastLeftPct, lastTopPct, onCommit } = planDrag;
+    planDrag = null;
+    onCommit(lastLeftPct, lastTopPct);
+  }
+
+  // ---- Undo stack for Measurement Plan drag adjustments ----
+  // Each entry is a closure that reverts exactly one commit (markup move, or one item's
+  // offset). Scoped only to plan-item drags — not a general app-wide undo — so it stays
+  // simple: push the pre-drag value right before applying the new one, pop-and-restore on
+  // undo. Capped so it can't grow unbounded over a long editing session.
+  let planDragUndoStack = [];
+  function pushPlanDragUndo(restoreFn) {
+    planDragUndoStack.push(restoreFn);
+    if (planDragUndoStack.length > 50) planDragUndoStack.shift();
+  }
+  function undoPlanDrag() {
+    const restoreFn = planDragUndoStack.pop();
+    if (!restoreFn) return;
+    restoreFn();
+    render();
+  }
+  // Ctrl/Cmd+Z triggers plan-drag undo, but only when focus isn't in an editable field —
+  // otherwise it would hijack the browser's native text-undo inside a markup note, title,
+  // or notes textarea.
+  document.addEventListener("keydown", (evt) => {
+    if ((evt.ctrlKey || evt.metaKey) && !evt.shiftKey && evt.key.toLowerCase() === "z") {
+      const active = document.activeElement;
+      const isEditable = active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA" || active.isContentEditable);
+      if (isEditable) return;
+      if (planDragUndoStack.length === 0) return;
+      evt.preventDefault();
+      undoPlanDrag();
+    }
+  });
+
+  function updateMarkupPosition(id, x, y) {
+    const m = planMarkups.find(m => m.id === id);
+    if (!m) return;
+    const prevX = m.x, prevY = m.y;
+    pushPlanDragUndo(() => { m.x = prevX; m.y = prevY; });
+    m.x = x; m.y = y;
+    render();
+  }
+
+  function updateWidthLabelOffset(elevIdx, baseX, baseY, newLeft, newTop) {
+    const e = elevations[elevIdx];
+    const prevOffset = e.widthLabelOffset || { dx: 0, dy: 0 };
+    pushPlanDragUndo(() => { e.widthLabelOffset = prevOffset; });
+    e.widthLabelOffset = { dx: newLeft - baseX, dy: newTop - baseY };
+    render();
+  }
+
+  function updateHeightLabelOffset(elevIdx, posIdx, baseX, baseY, newLeft, newTop) {
+    const p = elevations[elevIdx].positions[posIdx];
+    const prevOffset = p.heightLabelOffset || { dx: 0, dy: 0 };
+    pushPlanDragUndo(() => { p.heightLabelOffset = prevOffset; });
+    p.heightLabelOffset = { dx: newLeft - baseX, dy: newTop - baseY };
+    render();
+  }
+
+  function updateDatumOffset(sectionId, datumKey, baseX, baseY, newLeft, newTop) {
+    const section = planSections.find(s => s.id === sectionId);
+    if (!section) return;
+    section.datumOffsets = section.datumOffsets || {};
+    const hadKey = Object.prototype.hasOwnProperty.call(section.datumOffsets, datumKey);
+    const prevOffset = section.datumOffsets[datumKey];
+    pushPlanDragUndo(() => {
+      if (hadKey) section.datumOffsets[datumKey] = prevOffset;
+      else delete section.datumOffsets[datumKey];
+    });
+    section.datumOffsets[datumKey] = { dx: newLeft - baseX, dy: newTop - baseY };
+    render();
+  }
+
+  // Site-condition leader label (interactive Plan View): the 4 leaderDir buttons still work
+  // as quick corner presets, but dragging the label directly lets it land anywhere. Same
+  // layered-offset pattern as the Measurement Plan items — sc.leaderOffset stacks on top of
+  // whichever preset corner is active, so it stays correct if the pin itself moves later.
+  function updateLeaderOffset(idx, baseX, baseY, newLeft, newTop) {
+    const sc = siteConditions[idx];
+    if (!sc) return;
+    const prevOffset = sc.leaderOffset || { dx: 0, dy: 0 };
+    pushPlanDragUndo(() => { sc.leaderOffset = prevOffset; });
+    sc.leaderOffset = { dx: newLeft - baseX, dy: newTop - baseY };
+    render();
+  }
+
+  // Direction buttons reset any custom drag offset back to {0,0} so the preset corner
+  // reads as a clean "snap back" rather than compounding with a leftover manual nudge.
+  function setLeaderDir(idx, dir) {
+    const sc = siteConditions[idx];
+    if (!sc) return;
+    sc.leaderDir = dir;
+    sc.leaderOffset = { dx: 0, dy: 0 };
+    render();
+  }
+
 
   // ---- Photo: one per elevation/site condition, report-style. Full-res stays on the
   // device (picked via file input); only a moderate-size image is generated and saved
@@ -1067,25 +1237,35 @@
     }).join("");
 
     const LEADER_DIR_OFFSETS = { ur: [4, -4], ul: [-4, -4], dr: [4, 4], dl: [-4, 4] };
+    // Base label position = pin + the small preset corner offset for the active leaderDir;
+    // sc.leaderOffset (from dragging the label) stacks on top of that base, same pattern as
+    // the Measurement Plan's width/height labels — so if the pin itself is re-dropped later,
+    // the manual nudge still applies relative to the new base rather than going stale.
+    const leaderBase = (sc) => {
+      const [ox, oy] = LEADER_DIR_OFFSETS[sc.leaderDir || "ur"];
+      return { baseX: sc.pinX + ox, baseY: sc.pinY + oy };
+    };
     const pinLeaders = sectionScs.map(({ sc, idx }) => {
       if (sc.pinX == null || sc.pinY == null) return "";
       const color = siteConditionColor(idx);
-      const [ox, oy] = LEADER_DIR_OFFSETS[sc.leaderDir || "ur"];
-      const labelX = Math.max(2, Math.min(96, sc.pinX + ox));
-      const labelY = Math.max(2, Math.min(96, sc.pinY + oy));
+      const { baseX, baseY } = leaderBase(sc);
+      const off = sc.leaderOffset || { dx: 0, dy: 0 };
+      const labelX = Math.max(2, Math.min(96, baseX + off.dx));
+      const labelY = Math.max(2, Math.min(96, baseY + off.dy));
       return `<line x1="${sc.pinX}%" y1="${sc.pinY}%" x2="${labelX}%" y2="${labelY}%" stroke="${color}" stroke-width="1" stroke-dasharray="2,2" />`;
     }).join("");
 
     const pins = sectionScs.map(({ sc, idx }) => {
       if (sc.pinX == null || sc.pinY == null) return "";
       const color = siteConditionColor(idx);
-      const [ox, oy] = LEADER_DIR_OFFSETS[sc.leaderDir || "ur"];
-      const labelX = Math.max(2, Math.min(96, sc.pinX + ox));
-      const labelY = Math.max(2, Math.min(96, sc.pinY + oy));
+      const { baseX, baseY } = leaderBase(sc);
+      const off = sc.leaderOffset || { dx: 0, dy: 0 };
+      const labelX = Math.max(2, Math.min(96, baseX + off.dx));
+      const labelY = Math.max(2, Math.min(96, baseY + off.dy));
       const dirClass = "dir-" + (sc.leaderDir || "ur");
       return `
         <div class="plan-pin" style="left:${sc.pinX}%; top:${sc.pinY}%; background:${color};" title="${sc.title}"></div>
-        <div class="plan-marker-label label-pin ${dirClass}" style="left:${labelX}%; top:${labelY}%; font-size:${labelSize}px; ${pvOutlineStyle}">${sc.title}</div>
+        <div class="plan-marker-label label-pin draggable-item ${dirClass}" style="left:${labelX}%; top:${labelY}%; font-size:${labelSize}px; ${pvOutlineStyle}" onclick="event.stopPropagation()" onmousedown="startPlanItemDrag(event, ${labelX}, ${labelY}, (nl, nt) => updateLeaderOffset(${idx}, ${baseX}, ${baseY}, nl, nt))">${sc.title}</div>
       `;
     }).join("");
 
@@ -1133,22 +1313,33 @@
 
     // Datum is typically the same across every elevation in a section, so show it once
     // (stacked if more than one distinct value appears) instead of repeating it per line.
+    // Draggable: base position is the auto-stacked slot; section.datumOffsets (keyed by the
+    // datum's own display string) stores any manual nudge on top of that base.
     const uniqueDatums = [...new Set(linedElevs.map(({ e }) => fractionDisplay(e.datum)))];
+    const datumOffsets = section.datumOffsets || {};
     const datumBoxes = uniqueDatums.map((d, i) => {
-      return `<div class="mplan-datum-box" style="left:3%; top:${3 + i * 6}%; font-size:${labelSize}px;">Datum: ${d}</div>`;
+      const baseX = 3, baseY = 3 + i * 6;
+      const off = datumOffsets[d] || { dx: 0, dy: 0 };
+      const left = baseX + off.dx, top = baseY + off.dy;
+      return `<div class="mplan-datum-box draggable-item" style="left:${left}%; top:${top}%; font-size:${labelSize}px;" onclick="event.stopPropagation()" onmousedown="startPlanItemDrag(event, ${left}, ${top}, (nl, nt) => updateDatumOffset('${section.id}', '${d}', ${baseX}, ${baseY}, nl, nt))">Datum: ${d}</div>`;
     }).join("");
 
     // Width and height labels sit on fixed, opposite sides by default (width: below/right,
     // heights: above/left) so they never collide. Each elevation's "Flip label side" toggle
-    // (on its card) swaps both to the opposite pair for that one elevation only.
-    const widthLabels = linedElevs.map(({ e }) => {
+    // (on its card) swaps both to the opposite pair for that one elevation only. Draggable:
+    // e.widthLabelOffset stores a manual nudge (dx/dy in % points) on top of the computed
+    // midpoint, so the label stays anchored to the line's midpoint even if the line moves,
+    // while still letting the person fine-tune where exactly it sits.
+    const widthLabels = linedElevs.map(({ e, idx }) => {
       const midX = (e.lineX1 + e.lineX2) / 2;
       const midY = (e.lineY1 + e.lineY2) / 2;
       const isVertical = Math.abs(e.lineY2 - e.lineY1) > Math.abs(e.lineX2 - e.lineX1);
       const base = isVertical ? "orient-v" : "orient-h";
       const orientClass = e.labelFlip ? base + "-flip" : base;
       const adjWidth = decimalToFeetInches(parseHeightToDecimal(e.width) - (WALL_DEDUCTIONS[e.wallDeduction || "N/A"] || 0));
-      return `<div class="mplan-width-label ${orientClass}" style="left:${midX}%; top:${midY}%; font-size:${labelSize}px; ${outlineStyle}">${adjWidth}</div>`;
+      const off = e.widthLabelOffset || { dx: 0, dy: 0 };
+      const left = midX + off.dx, top = midY + off.dy;
+      return `<div class="mplan-width-label ${orientClass} draggable-item" style="left:${left}%; top:${top}%; font-size:${labelSize}px; color:${elevationColor(idx)}; ${outlineStyle}" onclick="event.stopPropagation()" onmousedown="startPlanItemDrag(event, ${left}, ${top}, (nl, nt) => updateWidthLabelOffset(${idx}, ${midX}, ${midY}, nl, nt))">${adjWidth}</div>`;
     }).join("");
 
     // Per-position heights (Datum + Variance), spread evenly along the line and offset
@@ -1157,8 +1348,10 @@
     // The offset direction is fixed by orientation (not derived from the line's raw dx/dy,
     // which flips depending on which end was clicked first) and deliberately opposite the
     // width label's side, so the two never collide: width sits below/right, heights sit
-    // above/left — unless this elevation's Flip toggle is on, which swaps both.
-    const heightLabels = linedElevs.map(({ e }, elevIdx) => {
+    // above/left — unless this elevation's Flip toggle is on, which swaps both. Draggable:
+    // p.heightLabelOffset stores a manual nudge on top of the computed spot, same pattern
+    // as the width label above.
+    const heightLabels = linedElevs.map(({ e, idx }, elevIdx) => {
       const positions = e.positions || [];
       if (positions.length === 0) return "";
       const dx = e.lineX2 - e.lineX1, dy = e.lineY2 - e.lineY1;
@@ -1174,21 +1367,31 @@
       // elevation itself is laid out — flip the sequence so position 1 lands at whichever
       // end that is, rather than following the line's arbitrary click start/end order.
       const orderedPositions = isVertical ? [...positions].reverse() : positions;
+      const orderedIdxs = isVertical ? positions.map((_, i) => i).reverse() : positions.map((_, i) => i);
       return orderedPositions.map((p, i) => {
         const t = n === 1 ? 0.5 : i / (n - 1);
-        const px = e.lineX1 + dx * t + perpX * offset;
-        const py = e.lineY1 + dy * t + perpY * offset;
+        const baseX = e.lineX1 + dx * t + perpX * offset;
+        const baseY = e.lineY1 + dy * t + perpY * offset;
         const h = fractionDisplay(p.variance);
         if (!h) return "";
-        return `<div class="mplan-height-label" style="left:${px}%; top:${py}%; font-size:${labelSize}px; ${outlineStyle}">${h}</div>`;
+        const posIdx = orderedIdxs[i];
+        const off = p.heightLabelOffset || { dx: 0, dy: 0 };
+        const px = baseX + off.dx, py = baseY + off.dy;
+        return `<div class="mplan-height-label draggable-item" style="left:${px}%; top:${py}%; font-size:${labelSize}px; color:${elevationColor(idx)}; ${outlineStyle}" onclick="event.stopPropagation()" onmousedown="startPlanItemDrag(event, ${px}, ${py}, (nl, nt) => updateHeightLabelOffset(${idx}, ${posIdx}, ${baseX}, ${baseY}, nl, nt))">${h}</div>`;
       }).join("");
     }).join("");
 
     const sectionMarkups = planMarkups.filter(m => m.sectionId === section.id);
     const markupsHtml = sectionMarkups.map(m => {
+      // No stored size yet -> no inline width/height at all, so the box (display:inline-block
+      // in CSS) shrinks/grows to fit whatever text is typed, up to max-width/max-height where
+      // it starts wrapping. Once the person manually drags the native resize handle,
+      // captureMarkupSize() stores m.w/m.h and this becomes a fixed pixel size instead —
+      // their manual size always wins over auto-fit from that point on.
       const sizeStyle = (m.w && m.h) ? `width:${m.w}px; height:${m.h}px;` : "";
       return `
       <div class="mplan-markup-wrap" style="left:${m.x}%; top:${m.y}%;" onclick="event.stopPropagation()">
+        <div class="mplan-markup-handle" title="Drag to move" onmousedown="startPlanItemDrag(event, ${m.x}, ${m.y}, (nl, nt) => updateMarkupPosition('${m.id}', nl, nt))">⠿</div>
         <div class="mplan-markup" id="${m.id}" contenteditable="true" spellcheck="false" style="${sizeStyle} font-size:${labelSize}px; ${outlineStyle}" onblur="updateMarkupText('${m.id}', this)" onmouseup="captureMarkupSize('${m.id}', this)">${m.text || ""}</div>
         <button type="button" class="mplan-markup-remove" onclick="removeMarkup('${m.id}')" title="Remove note">✕</button>
       </div>
@@ -1216,6 +1419,7 @@
           ${isMarkingMarkup
             ? `<button class="subtle" onclick="cancelAddMarkup()">Cancel</button>`
             : `<button onclick="startAddMarkup('${section.id}')">+ Add Markup</button>`}
+          <button class="subtle" onclick="undoPlanDrag()" ${planDragUndoStack.length === 0 ? "disabled" : ""} title="Undo last item move (Ctrl+Z)">↶ Undo Move</button>
           ${planDisplayControlsHtml(section, "mplanDisplay")}
         </div>
       </div>
@@ -1286,7 +1490,7 @@
         ${stepperField("Group raise limit", "groupDropLimit", levelerSettings.groupDropLimit, "Caps how much extra raise (beyond what an elevation needs on its own) it will accept to share an order height with others — lower this to force more (tighter) groups even if the leveler could physically span the whole set.")}
       </div>
       <div class="hint" style="margin-top:6px;">Raise/drop capacities come from each elevation's Leveler Type (Classic: 1-1/8" raise, 3/8" drop — Inspire: 5/8" raise, 1/2" drop). Reserve and group raise limit apply uniformly across types. "Group raise limit" caps how much extra raise (beyond what an elevation would need on its own) it will accept to share an order height with others.</div>
-      <div class="hint" style="margin-top:6px;"><strong>Extended Base</strong> (Classic: +1-1/2", Inspire: +3/4") raises the frame's whole adjustable range by that amount — it doesn't change any of the raise/drop numbers above or the Frame Adjustment shown per elevation, it just sits the leveler higher to begin with, like stilts under the frame.</div>
+      <div class="hint" style="margin-top:6px;"><strong>Extended collars</strong> (Classic: +1-1/2", Inspire: +3/4") are applied per position — check the collar box next to any position that needs it to raise just that position's height. If every position on an elevation is collared, Project Order Summary flags it to order Extended Base Trim. Collars don't change raise/drop capacity, so if Frame Adjustment / Drop to Min / Raise to Max still show over-capacity, that needs a different grouping or reserve setting instead.</div>
       <div class="settings-row" style="margin-top:10px;">
         <span class="settings-title">Elevation Defaults</span>
         ${stepperField("Datum", "globalDatum", levelerSettings.globalDatum)}
@@ -1356,6 +1560,11 @@
       // allowed. "Group raise limit" caps how much of an elevation's own raise capacity it
       // will spend just to fit into a shared group (vs. what it strictly needs on its own).
       const groupRaiseUse = Math.min(raiseUse, groupRaiseLimit);
+      // Extended collars are already baked into calc.naturalHeight/calc.maxDeducted (applied
+      // per-position in computeElevation, before Min/Max are derived) — so grouping naturally
+      // reflects them as real site-fact changes, with no separate offset needed here. Collars
+      // still don't grant extra raise/drop capacity, so a collared position that's still out
+      // of reach will correctly show up as over-capacity rather than being silently masked.
       const high = calc.naturalHeight + dropUse;
       const low = calc.maxDeducted - groupRaiseUse;
       return { idx, low, high };
@@ -1486,7 +1695,8 @@
           labelTextSize: s.labelTextSize ?? 9,
           outlineColor: s.calloutOutlineColor || "#000000",
           outlineWidth: s.calloutOutlineWidth ?? 1
-        }
+        },
+        datumOffsets: s.datumOffsets || {}
       }));
     } else if (data.planImageUrl || (data.elevations && data.elevations.length) || (data.siteConditions && data.siteConditions.length)) {
       migratedSectionId = "section-" + (nextLocalId++);
@@ -1510,12 +1720,13 @@
       ceilingChecked: !!e.ceilingChecked,
       bulkheadChecked: !!e.bulkheadChecked,
       levelerType: e.levelerType || "Classic",
-      extendedBase: !!e.extendedBase,
       width: e.width || "",
       wallDeduction: e.wallDeduction || "N/A",
+      widthType: e.widthType || "FF to FF",
       notes: e.notes || "",
       photo: pickSinglePhoto(e),
       labelFlip: !!e.labelFlip,
+      widthLabelOffset: e.widthLabelOffset || { dx: 0, dy: 0 },
       lineX1: e.lineX1 ?? null,
       lineY1: e.lineY1 ?? null,
       lineX2: e.lineX2 ?? null,
@@ -1523,7 +1734,9 @@
       positions: (e.positions || []).map(p => ({
         position: p.position,
         variance: p.variance,
-        calculatedHeight: p.calculatedHeight
+        calculatedHeight: p.calculatedHeight,
+        extCollar: !!p.extCollar,
+        heightLabelOffset: p.heightLabelOffset || { dx: 0, dy: 0 }
       }))
     }));
     siteConditions = (data.siteConditions || []).map(sc => ({
@@ -1534,6 +1747,7 @@
       pinX: sc.pinX ?? null,
       pinY: sc.pinY ?? null,
       leaderDir: sc.leaderDir || "ur",
+      leaderOffset: sc.leaderOffset || { dx: 0, dy: 0 },
       photo: pickSinglePhoto(sc)
     }));
     planMarkups = (data.planMarkups || []).map(m => ({
@@ -1622,9 +1836,9 @@
       title: "New Elevation",
       datum: levelerSettings.globalDatum,
       levelerType: levelerSettings.globalLevelerType,
-      extendedBase: false,
       width: "",
       wallDeduction: "N/A",
+      widthType: "FF to FF",
       carpetChecked: false,
       ceilingChecked: false,
       bulkheadChecked: false,
@@ -1632,9 +1846,9 @@
       photo: null,
       labelFlip: false,
       positions: [
-        { position: 1, variance: "", calculatedHeight: "" },
-        { position: 2, variance: "", calculatedHeight: "" },
-        { position: 3, variance: "", calculatedHeight: "" }
+        { position: 1, variance: "", calculatedHeight: "", extCollar: false },
+        { position: 2, variance: "", calculatedHeight: "", extCollar: false },
+        { position: 3, variance: "", calculatedHeight: "", extCollar: false }
       ]
     });
     render();
@@ -1643,7 +1857,7 @@
   function addPosition(elevIdx) {
     const e = elevations[elevIdx];
     const nextPos = e.positions.length ? Math.max(...e.positions.map(p => p.position)) + 1 : 1;
-    e.positions.push({ position: nextPos, variance: "", calculatedHeight: "" });
+    e.positions.push({ position: nextPos, variance: "", calculatedHeight: "", extCollar: false });
     render();
   }
 
@@ -1679,6 +1893,7 @@
       pinX: null,
       pinY: null,
       leaderDir: "ur", // ur | ul | dr | dl — which way the label floats off its pin
+      leaderOffset: { dx: 0, dy: 0 }, // manual drag nudge on top of the leaderDir preset
       photo: null
     });
     render();
@@ -1727,10 +1942,10 @@
             <span class="elev-mark-status">${(sc.pinX != null) ? "Pin placed" : "No pin marked"}</span>
             ${(sc.pinX != null) ? `
               <span class="elev-mark-status">Label:</span>
-              <button class="subtle leader-dir-btn ${(sc.leaderDir || 'ur') === 'ul' ? 'active' : ''}" title="Label up-left" onclick="updateSiteCondition(${idx}, 'leaderDir', 'ul')">↖</button>
-              <button class="subtle leader-dir-btn ${(sc.leaderDir || 'ur') === 'ur' ? 'active' : ''}" title="Label up-right" onclick="updateSiteCondition(${idx}, 'leaderDir', 'ur')">↗</button>
-              <button class="subtle leader-dir-btn ${(sc.leaderDir || 'ur') === 'dl' ? 'active' : ''}" title="Label down-left" onclick="updateSiteCondition(${idx}, 'leaderDir', 'dl')">↙</button>
-              <button class="subtle leader-dir-btn ${(sc.leaderDir || 'ur') === 'dr' ? 'active' : ''}" title="Label down-right" onclick="updateSiteCondition(${idx}, 'leaderDir', 'dr')">↘</button>
+              <button class="subtle leader-dir-btn ${(sc.leaderDir || 'ur') === 'ul' ? 'active' : ''}" title="Label up-left" onclick="setLeaderDir(${idx}, 'ul')">↖</button>
+              <button class="subtle leader-dir-btn ${(sc.leaderDir || 'ur') === 'ur' ? 'active' : ''}" title="Label up-right" onclick="setLeaderDir(${idx}, 'ur')">↗</button>
+              <button class="subtle leader-dir-btn ${(sc.leaderDir || 'ur') === 'dl' ? 'active' : ''}" title="Label down-left" onclick="setLeaderDir(${idx}, 'dl')">↙</button>
+              <button class="subtle leader-dir-btn ${(sc.leaderDir || 'ur') === 'dr' ? 'active' : ''}" title="Label down-right" onclick="setLeaderDir(${idx}, 'dr')">↘</button>
             ` : ""}
           </div>
           <textarea class="sc-notes" placeholder="Notes…" onchange="updateSiteCondition(${idx}, 'notes', this.value)">${sc.notes || ""}</textarea>
@@ -1774,9 +1989,18 @@
   }
 
   function computeElevation(e) {
-    const heights = e.positions.map(p => {
+    const collarShift = EXTENDED_BASE_SHIFT[e.levelerType] || EXTENDED_BASE_SHIFT.Classic;
+    // rawHeights is pure datum + variance (what the "Height" column shows). heights applies
+    // each position's own extended-collar checkbox on top of that — a collar physically
+    // changes what that position sits at, so Min/Max (and everything derived from them) use
+    // the collar-adjusted heights, while the Height column itself stays the uncollared value.
+    const rawHeights = e.positions.map(p => {
       const v = parseHeightToDecimal(p.variance);
       return e.datum ? (parseFloat(e.datum) + v) : v;
+    });
+    const heights = e.positions.map((p, i) => {
+      const base = rawHeights[i];
+      return isNaN(base) ? base : (base + (p.extCollar ? collarShift : 0));
     }).filter(h => !isNaN(h));
 
     const min = heights.length ? Math.min(...heights) : null;
@@ -1786,12 +2010,23 @@
     const carpetDed = e.carpetChecked ? CARPET_DEDUCTION : 0;
     const ceilingDed = e.ceilingChecked ? CEILING_DEDUCTION : 0;
     const bulkheadDed = e.bulkheadChecked ? BULKHEAD_DEDUCTION : 0;
-    const extShift = e.extendedBase ? (EXTENDED_BASE_SHIFT[e.levelerType] || EXTENDED_BASE_SHIFT.Classic) : 0;
 
-    const naturalHeight = (min !== null) ? (min - carpetDed - ceilingDed - bulkheadDed + extShift) : null;
-    const maxDeducted = (max !== null) ? (max - carpetDed - ceilingDed - bulkheadDed + extShift) : null;
+    // naturalHeight/maxDeducted now already reflect any collared positions (via min/max
+    // above), on top of the usual site-condition deductions — no separate offset needed
+    // downstream (grouping, Order Height, Frame Adjustment all just use these directly).
+    const naturalHeight = (min !== null) ? (min - carpetDed - ceilingDed - bulkheadDed) : null;
+    const maxDeducted = (max !== null) ? (max - carpetDed - ceilingDed - bulkheadDed) : null;
 
-    return { heights, min, max, diff, naturalHeight, maxDeducted };
+    const positionCount = e.positions.length;
+    const collarCount = e.positions.filter(p => p.extCollar).length;
+    const allCollared = positionCount > 0 && collarCount === positionCount;
+
+    const validRaw = rawHeights.filter(h => !isNaN(h));
+    const rawMin = validRaw.length ? Math.min(...validRaw) : null;
+    const rawMax = validRaw.length ? Math.max(...validRaw) : null;
+    const rawDiff = (rawMin !== null && rawMax !== null) ? (rawMax - rawMin) : null;
+
+    return { rawHeights, heights, min, max, diff, rawMin, rawMax, rawDiff, naturalHeight, maxDeducted, positionCount, collarCount, allCollared, collarShift };
   }
 
   // ---- Render ----
@@ -1806,16 +2041,35 @@
       const groupIdx = elevToGroup[idx] ?? 0;
       const color = groupColor(groupIdx);
       const groupOH = groups[groupIdx] ? groups[groupIdx].orderHeight : null;
-      const frameAdjustment = (groupOH !== null && calc.naturalHeight !== null) ? (groupOH - calc.naturalHeight) : null;
-      const rows = e.positions.map((p, pIdx) => `
+      // Order Height actually ordered/manufactured for THIS elevation adds its own Extended
+      // Base offset on top of the group's shared target — Frame Adjustment reflects that real
+      // ordered height with no backing-out, so it honestly shows if capacity is exceeded rather
+      // than hiding it (see computeGroups() note above).
+      const orderedHeight = groupOH;
+      const frameAdjustment = (orderedHeight !== null && calc.naturalHeight !== null) ? (orderedHeight - calc.naturalHeight) : null;
+      const collarLabel = e.levelerType === "Inspire" ? "+3/4\" collar" : "+1-1/2\" collar";
+      const hasCollars = calc.collarCount > 0;
+      // Adjusted Min/Max/Difference on the card reflect BOTH deductions and collars, so they
+      // should show whenever either is in play — broader than hasCollars, which only gates
+      // the position-table's per-position Adjusted Height column (a collar-only concern).
+      const hasAdjustments = hasCollars || e.carpetChecked || e.ceilingChecked || e.bulkheadChecked;
+      const rows = e.positions.map((p, pIdx) => {
+        const rawH = calc.rawHeights[pIdx];
+        const adjH = isNaN(rawH) ? rawH : (rawH + (p.extCollar ? calc.collarShift : 0));
+        return `
         <tr>
           <td>${p.position}</td>
           <td><input type="text" value="${p.variance ?? ''}" placeholder="e.g. 1-1/4"
               onchange="updatePosition(${idx}, ${pIdx}, 'variance', this.value)"></td>
-          <td class="calc-height">${decimalToFraction(calc.heights[pIdx])}</td>
+          <td class="calc-height">${decimalToFraction(rawH)}</td>
+          <td class="collar-cell ${hasCollars ? "" : "print-hide"}">
+            <input type="checkbox" class="${p.extCollar ? "" : "print-hide"}" title="Extended drive collar at this position (${collarLabel})" ${p.extCollar ? "checked" : ""} onchange="updatePosition(${idx}, ${pIdx}, 'extCollar', this.checked)">
+          </td>
+          ${hasCollars ? `<td class="calc-height">${decimalToFraction(adjH)}</td>` : ""}
           <td><button class="subtle" onclick="removePosition(${idx}, ${pIdx})">✕</button></td>
         </tr>
-      `).join("");
+      `;
+      }).join("");
 
       return `
         <div class="card-with-photo" id="elevation-card-${e.id}">
@@ -1864,10 +2118,19 @@
                   <option value="1-1/2" ${e.wallDeduction === "1-1/2" ? "selected" : ""}>1-1/2</option>
                 </select>
               </div>
+              <div class="field">
+                <label>Width Type</label>
+                <select onchange="updateElevation(${idx}, 'widthType', this.value)">
+                  <option value="FF to FF" ${(e.widthType || "FF to FF") === "FF to FF" ? "selected" : ""}>FF to FF</option>
+                  <option value="FF to CL" ${e.widthType === "FF to CL" ? "selected" : ""}>FF to CL</option>
+                  <option value="CL to CL" ${e.widthType === "CL to CL" ? "selected" : ""}>CL to CL</option>
+                  <option value="CL to FF" ${e.widthType === "CL to FF" ? "selected" : ""}>CL to FF</option>
+                </select>
+              </div>
             </div>
 
             <table class="positions">
-              <thead><tr><th>Position</th><th>Variance</th><th>Height</th><th></th></tr></thead>
+              <thead><tr><th>Position</th><th>Variance</th><th>Height</th><th class="${hasCollars ? "" : "print-hide"}">Extended Collar</th>${hasCollars ? "<th>Adjusted Height</th>" : ""}<th></th></tr></thead>
               <tbody>${rows}</tbody>
             </table>
             <button class="subtle" onclick="addPosition(${idx})" style="margin-bottom:6px;">+ Add position</button>
@@ -1885,10 +2148,6 @@
                 <input type="checkbox" ${e.bulkheadChecked ? "checked" : ""} onchange="updateElevation(${idx}, 'bulkheadChecked', this.checked)">
                 <label title="Bulkhead Deduction — raw/undrywalled bulkhead condition at the datum line, deducts the same way Carpet/Tegular do">Bulkhead (${BULKHEAD_DEDUCTION}")</label>
               </div>
-              <div class="field checkbox ${e.extendedBase ? "" : "print-hide"}">
-                <input type="checkbox" ${e.extendedBase ? "checked" : ""} onchange="updateElevation(${idx}, 'extendedBase', this.checked)">
-                <label title="Longer hardware (Classic: Extended Drive Collar, +1-1/2&quot; — Inspire: extended leveler stud, +3/4&quot;) that shifts the whole adjustable range higher. Same raise/drop capacity, just from a taller baseline — essentially stilts the frame, doesn't change the adjustment numbers.">Extended Base</label>
-              </div>
               <div class="field" style="flex-direction:row; align-items:center; gap:6px;">
                 <label title="Frame Adjustment" style="white-space:nowrap;">Frame Adj.</label>
                 <div class="val-field readonly" title="How far the leveler raises or drops this elevation from its natural height to reach the group's order height">${signedFraction(frameAdjustment)}</div>
@@ -1905,15 +2164,24 @@
               <div class="result-block">
                 <div class="result">
                   <span class="label">Min / Max</span>
-                  <span class="value">${decimalToFraction(calc.min)} – ${decimalToFraction(calc.max)}</span>
+                  <span class="value">${decimalToFraction(calc.rawMin)} – ${decimalToFraction(calc.rawMax)}</span>
                 </div>
                 <div class="result">
                   <span class="label">Difference</span>
-                  <span class="value">${decimalToFraction(calc.diff)}</span>
+                  <span class="value">${decimalToFraction(calc.rawDiff)}</span>
                 </div>
+                ${hasAdjustments ? `
+                <div class="result">
+                  <span class="label">Adjusted Min / Max</span>
+                  <span class="value">${decimalToFraction(calc.naturalHeight)} – ${decimalToFraction(calc.maxDeducted)}</span>
+                </div>
+                <div class="result">
+                  <span class="label">Adjusted Difference</span>
+                  <span class="value">${decimalToFraction((calc.maxDeducted !== null && calc.naturalHeight !== null) ? (calc.maxDeducted - calc.naturalHeight) : null)}</span>
+                </div>` : ""}
                 <div class="result order">
                   <span class="label">Order Height</span>
-                  <span class="value">${decimalToFraction(groupOH)}</span>
+                  <span class="value">${decimalToFraction(orderedHeight)}</span>
                 </div>
               </div>
             </div>
@@ -1997,8 +2265,11 @@
       const color = groupColor(elevToGroup[idx] ?? 0);
       const groupOH = groups[elevToGroup[idx] ?? 0].orderHeight;
       const adjWidth = decimalToFeetInches(parseHeightToDecimal(e.width) - (WALL_DEDUCTIONS[e.wallDeduction || "N/A"] || 0));
-      const extTag = e.extendedBase
-        ? ` <span class="ext-base-tag" title="Uses Extended Base hardware (Classic: Extended Drive Collar / Inspire: extended leveler stud) — remember to order Extended Base Trim for this elevation.">Extended Base</span>`
+      // A small asterisk marks elevations with anything worth flagging (extended collars in
+      // use) — details live in the Notes card below the table rather than a wide inline tag,
+      // so summary rows don't blow out in height for a one-off flag.
+      const collarStar = calc.collarCount > 0
+        ? ` <span class="collar-star" title="See notes below">*</span>`
         : "";
       // Signed change from Order Height to Min/Max, matching how a person reads the column:
       // Drop to Min = Min − Order Height (negative = an actual drop of that amount; positive
@@ -2008,23 +2279,41 @@
       // The over-capacity check follows whichever direction is actually required in each case,
       // not just the usual one, so it stays correct even in the reversed scenarios above.
       const { raiseUse, dropUse } = leverageForElevation(e);
-      const dropToMin = calc.naturalHeight - groupOH;
-      const raiseToMax = calc.maxDeducted - groupOH;
+      const orderedHeight = groupOH;
+      const dropToMin = calc.naturalHeight - orderedHeight;
+      const raiseToMax = calc.maxDeducted - orderedHeight;
       const dropOver = dropToMin < 0 ? (-dropToMin > dropUse + 1e-9) : (dropToMin > raiseUse + 1e-9);
       const raiseOver = raiseToMax > 0 ? (raiseToMax > raiseUse + 1e-9) : (-raiseToMax > dropUse + 1e-9);
       const dropCell = `<td class="num${dropOver ? " over-capacity" : ""}" title="${dropOver ? `Exceeds this elevation's usable ${dropToMin < 0 ? "drop" : "raise"} capacity` : `Usable drop: ${decimalToFraction(dropUse)}" — usable raise: ${decimalToFraction(raiseUse)}"`}">${signedFraction(dropToMin)}${dropOver ? " ⚠" : ""}</td>`;
       const raiseCell = `<td class="num${raiseOver ? " over-capacity" : ""}" title="${raiseOver ? `Exceeds this elevation's usable ${raiseToMax > 0 ? "raise" : "drop"} capacity` : `Usable raise: ${decimalToFraction(raiseUse)}" — usable drop: ${decimalToFraction(dropUse)}"`}">${signedFraction(raiseToMax)}${raiseOver ? " ⚠" : ""}</td>`;
-      return `<tr><td><span class="group-swatch" style="background:${color};"></span>${e.title}${extTag}</td><td class="num">${adjWidth}</td><td class="num">${decimalToFraction(calc.naturalHeight)}</td>${dropCell}<td class="num">${decimalToFraction(groupOH)}</td>${raiseCell}<td class="num">${decimalToFraction(calc.maxDeducted)}</td></tr>`;
+      return `<tr><td class="label"><span class="group-swatch" style="background:${color};"></span>${e.title}${collarStar}</td><td class="num">${adjWidth}</td><td class="num">${decimalToFraction(calc.naturalHeight)}</td>${dropCell}<td class="num">${decimalToFraction(orderedHeight)}</td>${raiseCell}<td class="num">${decimalToFraction(calc.maxDeducted)}</td></tr>`;
     }).join("");
 
-    const extendedElevs = elevations.filter(e => e.extendedBase);
-    const extendedNote = extendedElevs.length
-      ? `<div class="ext-base-note"><strong>⚠ Extended Base:</strong> ${extendedElevs.map(e => e.title).join(", ")} ${extendedElevs.length === 1 ? "uses" : "use"} Extended Base hardware — remember to order Extended Base Trim for ${extendedElevs.length === 1 ? "this elevation" : "these elevations"}.</div>`
-      : "";
+    // Notes card: for every elevation using at least one extended collar, list how many —
+    // and, ONLY for elevations collared across every position (allCollared — extended base
+    // hardware needed the full length of that line), how much Extended Base track to order.
+    // Formula (per user's real-world sizing): both faces of the wall need coverage, so
+    // width x2, rounded up to the nearest 10', plus 10' extra — e.g. a 9' wide elevation
+    // needs 18' both sides -> rounds up to 20' -> +10' extra = 30'.
+    const noteRows = elevations.filter(e => computeElevation(e).collarCount > 0).map(e => {
+      const calc = computeElevation(e);
+      let note = `${calc.collarCount} extended collar${calc.collarCount === 1 ? "" : "s"} needed`;
+      if (calc.allCollared) {
+        const widthFeet = parseHeightToDecimal(e.width) / 12;
+        const roundedUp10 = Math.ceil((widthFeet * 2) / 10) * 10;
+        const extBaseFeet = roundedUp10 + 10;
+        note += `; ~${extBaseFeet}' of Extended Base needed`;
+      }
+      return `<div class="summary-note-row"><span class="collar-star">*</span> <strong>${e.title}</strong> — ${note}</div>`;
+    }).join("");
+    const notesCard = noteRows ? `<div class="summary-card"><h2>Notes</h2>${noteRows}</div>` : "";
 
     const groupRows = groups.map((g, gIdx) => {
-      const names = g.members.map(m => elevations[m].title).join(", ");
-      return `<tr><td><span class="group-swatch" style="background:${groupColor(gIdx)};"></span>Group ${gIdx + 1}</td><td class="num">${decimalToFraction(g.orderHeight)}</td><td>${names}</td></tr>`;
+      // Wrap each elevation name in its own nowrap span so the browser only ever breaks the
+      // line BETWEEN names (at the comma) — never mid-name (e.g. "Elev C/D 1" splitting into
+      // "Elev C/D" / "1") — while the list as a whole can still wrap across several lines.
+      const names = g.members.map(m => `<span class="elev-name-chip">${elevations[m].title}</span>`).join(", ");
+      return `<tr><td class="label group-label"><span class="group-swatch" style="background:${groupColor(gIdx)};"></span>Group ${gIdx + 1}</td><td class="num">${decimalToFraction(g.orderHeight)}</td><td class="label">${names}</td></tr>`;
     }).join("");
 
     const allCalcs = elevations.map(computeElevation);
@@ -2035,31 +2324,31 @@
       const memberCalcs = g.members.map(m => allCalcs[m]);
       const gMin = Math.min(...memberCalcs.map(c => c.naturalHeight));
       const gMax = Math.max(...memberCalcs.map(c => c.maxDeducted));
-      return `<tr><td><span class="group-swatch" style="background:${groupColor(gIdx)};"></span>Group ${gIdx + 1}</td><td class="num">${decimalToFraction(gMin)}</td><td class="num">${decimalToFraction(gMax)}</td><td class="num">${decimalToFraction(gMax - gMin)}</td></tr>`;
+      return `<tr><td class="label"><span class="group-swatch" style="background:${groupColor(gIdx)};"></span>Group ${gIdx + 1}</td><td class="num">${decimalToFraction(gMin)}</td><td class="num">${decimalToFraction(gMax)}</td><td class="num">${decimalToFraction(gMax - gMin)}</td></tr>`;
     }).join("");
 
     document.getElementById("summaryContainer").innerHTML = `
       <div class="summary-card">
         <h2>Order Height Groups — ${groups.length} with ${elevations.length} elevations</h2>
         <table class="summary">
-          <thead><tr><th>Group</th><th>Order Height</th><th>Elevations</th></tr></thead>
+          <thead><tr><th class="label">Group</th><th>Order Height</th><th class="label">Elevations</th></tr></thead>
           <tbody>${groupRows}</tbody>
         </table>
       </div>
       <div class="summary-card">
         <h2>Project Order Summary — ${projectName}</h2>
         <table class="summary">
-          <thead><tr><th>Elevation</th><th style="text-align:right">Width</th><th style="text-align:right">Min</th><th style="text-align:right" title="How much this elevation must drop from Order Height to reach Min — flagged if it exceeds usable drop capacity">Drop to Min</th><th style="text-align:right">Order Height</th><th style="text-align:right" title="How much this elevation must raise from Order Height to reach Max — flagged if it exceeds usable raise capacity">Raise to Max</th><th style="text-align:right" title="Max height minus carpet/tegular deductions">Max</th></tr></thead>
+          <thead><tr><th class="label">Elevation</th><th>Width</th><th>Min</th><th title="How much this elevation must drop from Order Height to reach Min — flagged if it exceeds usable drop capacity">Drop to Min</th><th>Order Height</th><th title="How much this elevation must raise from Order Height to reach Max — flagged if it exceeds usable raise capacity">Raise to Max</th><th title="Max height minus carpet/tegular deductions">Max</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
-        ${extendedNote}
       </div>
+      ${notesCard}
       <div class="summary-card">
         <h2>Frame Range Across All Elevations</h2>
         <table class="summary">
-          <thead><tr><th></th><th style="text-align:right">Min</th><th style="text-align:right">Max</th><th style="text-align:right">Spread</th></tr></thead>
+          <thead><tr><th class="label"></th><th>Min</th><th>Max</th><th>Spread</th></tr></thead>
           <tbody>
-            <tr style="font-weight:600;"><td>Overall</td><td class="num">${decimalToFraction(projMin)}</td><td class="num">${decimalToFraction(projMax)}</td><td class="num">${decimalToFraction(projMax - projMin)}</td></tr>
+            <tr style="font-weight:600;"><td class="label">Overall</td><td class="num">${decimalToFraction(projMin)}</td><td class="num">${decimalToFraction(projMax)}</td><td class="num">${decimalToFraction(projMax - projMin)}</td></tr>
             ${groupRangeRows}
           </tbody>
         </table>
@@ -2104,37 +2393,46 @@
           labelTextSize: (s.mplanDisplay && s.mplanDisplay.labelTextSize) ?? 9,
           outlineColor: (s.mplanDisplay && s.mplanDisplay.outlineColor) || "#000000",
           outlineWidth: (s.mplanDisplay && s.mplanDisplay.outlineWidth) ?? 1
-        }
+        },
+        datumOffsets: s.datumOffsets || {}
       })),
       elevations: elevations.map((e, idx) => {
         const calc = computeElevation(e);
         const groupOH = groups[elevToGroup[idx] ?? 0].orderHeight;
-        const frameAdjustment = (groupOH !== null && calc.naturalHeight !== null) ? (groupOH - calc.naturalHeight) : null;
+        const orderedHeight = groupOH;
+        const frameAdjustment = (orderedHeight !== null && calc.naturalHeight !== null) ? (orderedHeight - calc.naturalHeight) : null;
         return {
           id: e.id,
           sectionId: e.sectionId,
           title: e.title,
           datum: e.datum,
           levelerType: e.levelerType || "Classic",
-          extendedBase: !!e.extendedBase,
+          collarCount: calc.collarCount,
+          positionCount: calc.positionCount,
+          allCollared: calc.allCollared,
           width: e.width || "",
           wallDeduction: e.wallDeduction || "N/A",
+          widthType: e.widthType || "FF to FF",
           carpetChecked: e.carpetChecked,
           ceilingChecked: e.ceilingChecked,
           bulkheadChecked: !!e.bulkheadChecked,
           notes: e.notes || "",
           photo: e.photo ? { id: e.photo.id, thumbnail: e.photo.thumbnail, filename: e.photo.filename || "" } : null,
           labelFlip: !!e.labelFlip,
+          widthLabelOffset: e.widthLabelOffset || { dx: 0, dy: 0 },
           lineX1: e.lineX1 ?? null,
           lineY1: e.lineY1 ?? null,
           lineX2: e.lineX2 ?? null,
           lineY2: e.lineY2 ?? null,
-          min: calc.min,
-          max: calc.max,
-          diff: calc.diff,
+          min: calc.rawMin,
+          max: calc.rawMax,
+          diff: calc.rawDiff,
+          adjustedMin: calc.naturalHeight,
+          adjustedMax: calc.maxDeducted,
+          adjustedDiff: (calc.maxDeducted !== null && calc.naturalHeight !== null) ? (calc.maxDeducted - calc.naturalHeight) : null,
           naturalHeight: calc.naturalHeight,
-          orderHeight: groupOH,
-          orderHeightFraction: decimalToFraction(groupOH),
+          orderHeight: orderedHeight,
+          orderHeightFraction: decimalToFraction(orderedHeight),
           frameAdjustment: frameAdjustment,
           frameAdjustmentFraction: signedFraction(frameAdjustment),
           positions: e.positions
@@ -2148,6 +2446,7 @@
         pinX: sc.pinX ?? null,
         pinY: sc.pinY ?? null,
         leaderDir: sc.leaderDir || "ur",
+        leaderOffset: sc.leaderOffset || { dx: 0, dy: 0 },
         photo: sc.photo ? { id: sc.photo.id, thumbnail: sc.photo.thumbnail, filename: sc.photo.filename || "" } : null
       })),
       planMarkups: planMarkups.map(m => ({ id: m.id, sectionId: m.sectionId, x: m.x, y: m.y, text: m.text || "", w: m.w || null, h: m.h || null })),
